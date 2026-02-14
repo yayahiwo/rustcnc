@@ -15,33 +15,23 @@
 .content {
   flex: 1;
   display: grid;
-  grid-template-columns: 300px 1fr 320px;
   gap: var(--gap-md);
   padding: var(--gap-md);
   overflow: hidden;
   min-height: 0;
 }
 
-.left {
+.column {
   display: flex;
   flex-direction: column;
   gap: var(--gap-md);
   overflow-y: auto;
   min-height: 0;
+  min-width: 0;
 }
 
-.center {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-md);
-  min-height: 0;
-  overflow: hidden;
-}
-
-.right {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-md);
-  overflow-y: auto;
-  min-height: 0;
+.dropTarget {
+  outline: 2px dashed var(--accent-blue);
+  outline-offset: -2px;
+  border-radius: var(--radius-lg);
 }

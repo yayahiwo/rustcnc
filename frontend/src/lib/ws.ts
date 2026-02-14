@@ -44,6 +44,9 @@ export class WsClient {
       this.reconnectDelay = 1000;
       console.log('[WS] Connected');
 
+      // Request full state sync on (re)connect
+      this.send({ type: 'RequestSync' });
+
       // Start keepalive pings
       this.pingInterval = setInterval(() => {
         this.send({ type: 'Ping' });
@@ -51,13 +54,19 @@ export class WsClient {
     };
 
     this.ws.onmessage = (event) => {
+      let msg: ServerMessage;
       try {
-        const msg: ServerMessage = JSON.parse(event.data);
-        for (const handler of this.handlers) {
-          handler(msg);
-        }
+        msg = JSON.parse(event.data);
       } catch (e) {
         console.warn('[WS] Failed to parse message:', e);
+        return;
+      }
+      for (const handler of this.handlers) {
+        try {
+          handler(msg);
+        } catch (e) {
+          console.error('[WS] Handler error:', e);
+        }
       }
     };
 
@@ -87,10 +96,10 @@ export class WsClient {
   }
 
   /** Send a jog command */
-  sendJog(x?: number, y?: number, z?: number, feed = 1000, incremental = true): void {
+  sendJog(axes: Record<string, number | undefined>, feed = 1000, incremental = true): void {
     this.send({
       type: 'Jog',
-      data: { x, y, z, feed, incremental },
+      data: { ...axes, feed, incremental },
     });
   }
 

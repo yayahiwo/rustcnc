@@ -19,6 +19,8 @@ export interface Position {
   a?: number;
   b?: number;
   c?: number;
+  u?: number;
+  v?: number;
 }
 
 export interface Overrides {
@@ -38,6 +40,11 @@ export interface InputPins {
   limit_x: boolean;
   limit_y: boolean;
   limit_z: boolean;
+  limit_a: boolean;
+  limit_b: boolean;
+  limit_c: boolean;
+  limit_u: boolean;
+  limit_v: boolean;
   probe: boolean;
   door: boolean;
   hold: boolean;
@@ -131,14 +138,14 @@ export interface GCodeLineInfo {
   line_num: number;
   text: string;
   move_type?: string;
-  endpoint?: [number, number, number];
+  endpoint?: number[];
 }
 
 export interface GCodeFileInfo {
   id: string;
   name: string;
   lines: GCodeLineInfo[];
-  bounding_box?: [[number, number, number], [number, number, number]];
+  bounding_box?: [number[], number[]];
 }
 
 export type ServerMessage =
@@ -171,6 +178,11 @@ export interface JogCommand {
   x?: number;
   y?: number;
   z?: number;
+  a?: number;
+  b?: number;
+  c?: number;
+  u?: number;
+  v?: number;
   feed: number;
   incremental: boolean;
   distance?: number;

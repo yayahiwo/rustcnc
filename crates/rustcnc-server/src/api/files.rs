@@ -5,9 +5,9 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use serde::Serialize;
 use tracing::{error, info};
 
+use rustcnc_core::gcode::GCodeFile;
 use rustcnc_core::ws_protocol::FileInfo;
 use rustcnc_planner::planner::PlannerCommand;
 
@@ -50,6 +50,17 @@ pub async fn upload_file(
         let content = String::from_utf8_lossy(&data).into_owned();
         info!("Uploaded file: {} ({} bytes)", name, content.len());
 
+        // Parse and store the file in state
+        let parsed = GCodeFile::parse(name.clone(), &content);
+        let file_info = FileInfo {
+            id: parsed.id.to_string(),
+            name: parsed.name.clone(),
+            size_bytes: parsed.lines.iter().map(|l| l.byte_len as u64).sum(),
+            line_count: parsed.total_lines,
+            loaded_at: parsed.loaded_at.to_rfc3339(),
+        };
+        state.files.write().push(parsed);
+
         // Send to planner to parse
         let _ = state
             .planner_tx
@@ -59,14 +70,7 @@ pub async fn upload_file(
             })
             .await;
 
-        // Return basic info (full file info will come via WebSocket)
-        return Ok(Json(FileInfo {
-            id: "pending".into(),
-            name,
-            size_bytes: data.len() as u64,
-            line_count: 0,
-            loaded_at: chrono::Utc::now().to_rfc3339(),
-        }));
+        return Ok(Json(file_info));
     }
 
     Err(StatusCode::BAD_REQUEST)
@@ -92,12 +96,27 @@ pub async fn load_file(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> StatusCode {
-    let files = state.files.read();
-    if let Some(file) = files.iter().find(|f| f.id.to_string() == id) {
-        // File is already loaded in memory; notify planner
-        info!("Loading file for job: {}", file.name);
-        StatusCode::OK
-    } else {
-        StatusCode::NOT_FOUND
-    }
+    let (name, content) = {
+        let files = state.files.read();
+        if let Some(file) = files.iter().find(|f| f.id.to_string() == id) {
+            info!("Loading file for job: {}", file.name);
+            let content = file
+                .lines
+                .iter()
+                .map(|l| l.text.as_str())
+                .collect::<Vec<_>>()
+                .join("\n");
+            (file.name.clone(), content)
+        } else {
+            return StatusCode::NOT_FOUND;
+        }
+    };
+
+    // Send to planner so it becomes the active job
+    let _ = state
+        .planner_tx
+        .send(PlannerCommand::LoadContent { name, content })
+        .await;
+
+    StatusCode::OK
 }

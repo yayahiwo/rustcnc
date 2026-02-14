@@ -57,6 +57,35 @@
   color: white;
 }
 
+.extraAxes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+}
+
+.axisRow {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  max-width: 270px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.axisLabel {
+  width: 20px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.axisRow .jogBtn {
+  flex: 1;
+  width: auto;
+}
+
 .presets {
   display: flex;
   flex-direction: column;

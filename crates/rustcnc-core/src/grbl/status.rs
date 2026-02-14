@@ -106,7 +106,14 @@ fn parse_machine_state(s: &str) -> Option<MachineState> {
 
 /// Parse position from comma-separated values: "x,y,z" or "x,y,z,a,b,c"
 fn parse_position(s: &str) -> Option<Position> {
-    let parts: Vec<f64> = s.split(',').filter_map(|p| p.parse().ok()).collect();
+    let parts: Vec<f64> = match s
+        .split(',')
+        .map(|p| p.parse::<f64>())
+        .collect::<Result<Vec<_>, _>>()
+    {
+        Ok(v) => v,
+        Err(_) => return None,
+    };
 
     if parts.len() < 3 {
         return None;
@@ -119,6 +126,8 @@ fn parse_position(s: &str) -> Option<Position> {
         a: parts.get(3).copied(),
         b: parts.get(4).copied(),
         c: parts.get(5).copied(),
+        u: parts.get(6).copied(),
+        v: parts.get(7).copied(),
     })
 }
 
@@ -139,6 +148,11 @@ fn parse_input_pins(s: &str) -> InputPins {
         limit_x: s.contains('X'),
         limit_y: s.contains('Y'),
         limit_z: s.contains('Z'),
+        limit_a: s.contains('A'),
+        limit_b: s.contains('B'),
+        limit_c: s.contains('C'),
+        limit_u: s.contains('U'),
+        limit_v: s.contains('V'),
         probe: s.contains('P'),
         door: s.contains('D'),
         hold: s.contains('H'),
@@ -276,6 +290,21 @@ mod tests {
         assert_eq!(pos.a, Some(4.0));
         assert_eq!(pos.b, Some(5.0));
         assert_eq!(pos.c, Some(6.0));
+    }
+
+    #[test]
+    fn test_parse_with_8_axes() {
+        let report =
+            parse_status_report("<Idle|MPos:1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0|FS:0,0>").unwrap();
+        let pos = report.machine_position.unwrap();
+        assert_eq!(pos.x, 1.0);
+        assert_eq!(pos.y, 2.0);
+        assert_eq!(pos.z, 3.0);
+        assert_eq!(pos.a, Some(4.0));
+        assert_eq!(pos.b, Some(5.0));
+        assert_eq!(pos.c, Some(6.0));
+        assert_eq!(pos.u, Some(7.0));
+        assert_eq!(pos.v, Some(8.0));
     }
 
     #[test]

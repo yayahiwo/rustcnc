@@ -40,9 +40,15 @@ async fn main() -> anyhow::Result<()> {
     if let Some(ref port) = cli.port {
         config.serial.default_port = Some(port.clone());
     }
-    config.serial.baud_rate = cli.baud;
-    config.server.host = cli.host.clone();
-    config.server.port = cli.listen_port;
+    if let Some(baud) = cli.baud {
+        config.serial.baud_rate = baud;
+    }
+    if let Some(ref host) = cli.host {
+        config.server.host = host.clone();
+    }
+    if let Some(listen_port) = cli.listen_port {
+        config.server.port = listen_port;
+    }
 
     // 3. Create shared state
     let shared_state = SharedMachineState::new();
@@ -58,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
     let (streamer_event_tokio_tx, streamer_event_tokio_rx) = mpsc::channel::<StreamerEvent>(256);
     let streamer_event_bridge_tx = streamer_event_tokio_tx.clone();
     let ws_tx_for_bridge = ws_broadcast_tx.clone();
-    tokio::spawn(async move {
+    tokio::task::spawn_blocking(move || {
         loop {
             match streamer_event_rx_raw.recv() {
                 Ok(event) => {
@@ -90,8 +96,8 @@ async fn main() -> anyhow::Result<()> {
                         }
                         _ => {}
                     }
-                    // Forward to planner
-                    let _ = streamer_event_bridge_tx.send(event).await;
+                    // Forward to planner (blocking_send from non-async context)
+                    let _ = streamer_event_bridge_tx.blocking_send(event);
                 }
                 Err(_) => break, // Channel closed
             }
@@ -131,7 +137,7 @@ async fn main() -> anyhow::Result<()> {
         cpu_pin_core: config.streamer.cpu_pin_core,
         rt_priority: config.streamer.rt_priority,
         status_poll_interval: Duration::from_millis(
-            1000 / config.serial.status_poll_rate_hz as u64,
+            1000 / config.serial.status_poll_rate_hz.max(1) as u64,
         ),
     };
     std::thread::Builder::new()
@@ -210,17 +216,20 @@ async fn main() -> anyhow::Result<()> {
     // 9. Spawn WebSocket broadcaster
     let broadcaster_shared = shared_state.clone();
     let broadcaster_tx = ws_broadcast_tx.clone();
+    let ws_tick_rate_hz = config.server.ws_tick_rate_hz;
+    let ws_idle_tick_rate_hz = config.server.ws_idle_tick_rate_hz;
     tokio::spawn(async move {
         ws::broadcaster::broadcaster_task(
             broadcaster_shared,
             broadcaster_tx,
-            config.server.ws_tick_rate_hz,
-            config.server.ws_idle_tick_rate_hz,
+            ws_tick_rate_hz,
+            ws_idle_tick_rate_hz,
         )
         .await;
     });
 
     // 10. Build application state
+    let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
     let app_state = Arc::new(AppState {
         machine_state: shared_state,
         planner_tx: planner_cmd_tx,
@@ -228,13 +237,12 @@ async fn main() -> anyhow::Result<()> {
         ws_broadcast_tx,
         files: RwLock::new(Vec::new()),
         job_progress: RwLock::new(None),
-        config: AppConfig::default(),
+        config,
         connection_port: RwLock::new(None),
     });
 
     // 11. Build Axum router and start server
     let router = app::build_router(app_state);
-    let addr: SocketAddr = format!("{}:{}", cli.host, cli.listen_port).parse()?;
 
     info!("RustCNC listening on http://{}", addr);
     info!("WebSocket endpoint: ws://{}/ws", addr);

@@ -1,5 +1,5 @@
 import { Component, For, Show } from 'solid-js';
-import { files } from '../../lib/store';
+import { files, addConsoleLine } from '../../lib/store';
 import { api } from '../../lib/api';
 import { formatFileSize } from '../../lib/format';
 import FileUpload from './FileUpload';
@@ -7,11 +7,19 @@ import styles from './FileList.module.css';
 
 const FileList: Component = () => {
   const handleLoad = async (id: string) => {
-    await api.loadFile(id);
+    try {
+      await api.loadFile(id);
+    } catch (e) {
+      addConsoleLine({ direction: 'System', text: `Failed to load file: ${e}`, timestamp: Date.now() });
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await api.deleteFile(id);
+    try {
+      await api.deleteFile(id);
+    } catch (e) {
+      addConsoleLine({ direction: 'System', text: `Failed to delete file: ${e}`, timestamp: Date.now() });
+    }
   };
 
   return (

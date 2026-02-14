@@ -1,4 +1,4 @@
-import { Component, For, Show, createMemo } from 'solid-js';
+import { Component, For, Show, createEffect, onCleanup } from 'solid-js';
 import { gcodeFile, jobProgress } from '../../lib/store';
 import styles from './GCodeViewer.module.css';
 
@@ -21,11 +21,12 @@ const GCodeViewer: Component = () => {
 
   // Debounce scrolling to avoid hammering during fast updates
   let scrollTimer: ReturnType<typeof setTimeout>;
-  createMemo(() => {
+  createEffect(() => {
     currentLine();
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(scrollToCurrent, 200);
   });
+  onCleanup(() => clearTimeout(scrollTimer));
 
   return (
     <div class={'panel ' + styles.viewer}>

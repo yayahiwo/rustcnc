@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { getScene, getCamera } from './scene';
+import { getScene, getCamera, getControls } from './scene';
 import type { GCodeFileInfo } from '../../lib/types';
 
 let rapidLines: THREE.LineSegments | null = null;
@@ -23,7 +23,9 @@ export function updateToolpath(file: GCodeFileInfo): void {
   for (const line of file.lines) {
     if (!line.endpoint) continue;
 
-    const [x, y, z] = line.endpoint;
+    const x = line.endpoint[0] ?? 0;
+    const y = line.endpoint[1] ?? 0;
+    const z = line.endpoint[2] ?? 0;
     const moveType = line.move_type || '';
 
     if (moveType === 'Rapid') {
@@ -65,7 +67,9 @@ export function updateToolpath(file: GCodeFileInfo): void {
 
   // Auto-fit camera to bounding box
   if (file.bounding_box) {
-    const [[minX, minY, minZ], [maxX, maxY, maxZ]] = file.bounding_box;
+    const [bbMin, bbMax] = file.bounding_box;
+    const minX = bbMin[0] ?? 0, minY = bbMin[1] ?? 0, minZ = bbMin[2] ?? 0;
+    const maxX = bbMax[0] ?? 0, maxY = bbMax[1] ?? 0, maxZ = bbMax[2] ?? 0;
     const center = new THREE.Vector3(
       (minX + maxX) / 2,
       (minY + maxY) / 2,
@@ -75,9 +79,11 @@ export function updateToolpath(file: GCodeFileInfo): void {
     const distance = size * 1.5;
 
     const cam = getCamera();
-    if (cam) {
+    const ctrl = getControls();
+    if (cam && ctrl) {
       cam.position.set(center.x + distance, center.y + distance, center.z + distance * 0.7);
-      cam.lookAt(center);
+      ctrl.target.copy(center);
+      ctrl.update();
     }
   }
 }

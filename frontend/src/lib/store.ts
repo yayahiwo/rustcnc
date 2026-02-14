@@ -39,9 +39,10 @@ export const [consoleLines, setConsoleLines] = createSignal<ConsoleEntry[]>([]);
 
 export function addConsoleLine(entry: ConsoleEntry) {
   setConsoleLines((prev) => {
-    const next = [...prev, entry];
-    if (next.length > MAX_CONSOLE_LINES) return next.slice(-MAX_CONSOLE_LINES);
-    return next;
+    if (prev.length >= MAX_CONSOLE_LINES) {
+      return [...prev.slice(1), entry];
+    }
+    return [...prev, entry];
   });
 }
 
@@ -73,9 +74,10 @@ export const [wsConnected, setWsConnected] = createSignal(false);
 
 // ── State name helper ──
 
-function extractStateName(state: any): string {
+function extractStateName(state: unknown): string {
   if (typeof state === 'string') return state;
-  return Object.keys(state)[0] || 'Unknown';
+  if (state && typeof state === 'object') return Object.keys(state)[0] || 'Unknown';
+  return 'Unknown';
 }
 
 // ── Message handler: updates all signals from server messages ──
@@ -103,8 +105,10 @@ function handleServerMessage(msg: ServerMessage): void {
       addConsoleLine(msg.data);
       break;
     case 'ConnectionChanged':
-      setConnectionState(msg.data);
-      setConnected(msg.data.connected);
+      batch(() => {
+        setConnectionState(msg.data);
+        setConnected(msg.data.connected);
+      });
       break;
     case 'FileListUpdated':
       setFiles(msg.data);
@@ -139,11 +143,13 @@ function handleServerMessage(msg: ServerMessage): void {
       break;
     }
     case 'Alarm':
-      setAlarm(msg.data);
-      addConsoleLine({
-        direction: 'System',
-        text: `ALARM:${msg.data.code} - ${msg.data.message}`,
-        timestamp: Date.now(),
+      batch(() => {
+        setAlarm(msg.data);
+        addConsoleLine({
+          direction: 'System',
+          text: `ALARM:${msg.data.code} - ${msg.data.message}`,
+          timestamp: Date.now(),
+        });
       });
       break;
     case 'GCodeLoaded':
@@ -159,11 +165,15 @@ function handleServerMessage(msg: ServerMessage): void {
 
 // ── Initialize: connect WebSocket and wire up handler ──
 
+let initialized = false;
+let wsCheckInterval: ReturnType<typeof setInterval> | undefined;
+
 export function initStore(): void {
+  if (initialized) return;
+  initialized = true;
   ws.onMessage(handleServerMessage);
   ws.connect();
 
   // Track WS connection status
-  const checkWs = () => setWsConnected(ws.connected);
-  setInterval(checkWs, 1000);
+  wsCheckInterval = setInterval(() => setWsConnected(ws.connected), 1000);
 }

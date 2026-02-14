@@ -1,22 +1,25 @@
 /// Linear motion interpolation for the simulator.
 /// Computes intermediate positions along a move for realistic simulation.
 
+/// Number of axes supported by grblHAL
+pub const NUM_AXES: usize = 8;
+
 /// A planned linear move
 #[derive(Debug, Clone)]
 pub struct LinearMove {
-    pub start: [f64; 3],
-    pub end: [f64; 3],
+    pub start: [f64; NUM_AXES],
+    pub end: [f64; NUM_AXES],
     pub feed_rate: f64,     // mm/min
     pub is_rapid: bool,
     total_distance: f64,
 }
 
 impl LinearMove {
-    pub fn new(start: [f64; 3], end: [f64; 3], feed_rate: f64, is_rapid: bool) -> Self {
-        let dx = end[0] - start[0];
-        let dy = end[1] - start[1];
-        let dz = end[2] - start[2];
-        let total_distance = (dx * dx + dy * dy + dz * dz).sqrt();
+    pub fn new(start: [f64; NUM_AXES], end: [f64; NUM_AXES], feed_rate: f64, is_rapid: bool) -> Self {
+        let total_distance = start.iter().zip(end.iter())
+            .map(|(s, e)| (e - s).powi(2))
+            .sum::<f64>()
+            .sqrt();
 
         Self {
             start,
@@ -48,52 +51,55 @@ impl LinearMove {
     }
 
     /// Interpolate position at progress t (0.0 to 1.0)
-    pub fn interpolate(&self, t: f64) -> [f64; 3] {
+    pub fn interpolate(&self, t: f64) -> [f64; NUM_AXES] {
         let t = t.clamp(0.0, 1.0);
-        [
-            self.start[0] + (self.end[0] - self.start[0]) * t,
-            self.start[1] + (self.end[1] - self.start[1]) * t,
-            self.start[2] + (self.end[2] - self.start[2]) * t,
-        ]
+        let mut result = [0.0; NUM_AXES];
+        for i in 0..NUM_AXES {
+            result[i] = self.start[i] + (self.end[i] - self.start[i]) * t;
+        }
+        result
     }
 }
 
-/// Compute the target position for a move, handling absolute vs incremental
+/// Compute the target position for a move, handling absolute vs incremental.
+/// Takes an array of optional axis values in grblHAL order: X,Y,Z,A,B,C,U,V
 pub fn compute_target(
-    current: &[f64; 3],
-    x: Option<f64>,
-    y: Option<f64>,
-    z: Option<f64>,
+    current: &[f64; NUM_AXES],
+    axes: &[Option<f64>; NUM_AXES],
     absolute: bool,
-) -> [f64; 3] {
-    if absolute {
-        [
-            x.unwrap_or(current[0]),
-            y.unwrap_or(current[1]),
-            z.unwrap_or(current[2]),
-        ]
-    } else {
-        [
-            current[0] + x.unwrap_or(0.0),
-            current[1] + y.unwrap_or(0.0),
-            current[2] + z.unwrap_or(0.0),
-        ]
+) -> [f64; NUM_AXES] {
+    let mut target = [0.0; NUM_AXES];
+    for i in 0..NUM_AXES {
+        target[i] = if absolute {
+            axes[i].unwrap_or(current[i])
+        } else {
+            current[i] + axes[i].unwrap_or(0.0)
+        };
     }
+    target
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn pos3(x: f64, y: f64, z: f64) -> [f64; NUM_AXES] {
+        [x, y, z, 0.0, 0.0, 0.0, 0.0, 0.0]
+    }
+
+    fn axes(x: Option<f64>, y: Option<f64>, z: Option<f64>) -> [Option<f64>; NUM_AXES] {
+        [x, y, z, None, None, None, None, None]
+    }
+
     #[test]
     fn test_linear_move_distance() {
-        let m = LinearMove::new([0.0, 0.0, 0.0], [3.0, 4.0, 0.0], 1000.0, false);
+        let m = LinearMove::new(pos3(0.0, 0.0, 0.0), pos3(3.0, 4.0, 0.0), 1000.0, false);
         assert!((m.distance() - 5.0).abs() < 0.001);
     }
 
     #[test]
     fn test_linear_move_interpolate() {
-        let m = LinearMove::new([0.0, 0.0, 0.0], [10.0, 20.0, 30.0], 1000.0, false);
+        let m = LinearMove::new(pos3(0.0, 0.0, 0.0), pos3(10.0, 20.0, 30.0), 1000.0, false);
         let mid = m.interpolate(0.5);
         assert!((mid[0] - 5.0).abs() < 0.001);
         assert!((mid[1] - 10.0).abs() < 0.001);
@@ -102,19 +108,23 @@ mod tests {
 
     #[test]
     fn test_compute_target_absolute() {
-        let target = compute_target(&[10.0, 20.0, 30.0], Some(5.0), None, Some(0.0), true);
-        assert_eq!(target, [5.0, 20.0, 0.0]);
+        let target = compute_target(&pos3(10.0, 20.0, 30.0), &axes(Some(5.0), None, Some(0.0)), true);
+        assert_eq!(target[0], 5.0);
+        assert_eq!(target[1], 20.0);
+        assert_eq!(target[2], 0.0);
     }
 
     #[test]
     fn test_compute_target_incremental() {
-        let target = compute_target(&[10.0, 20.0, 30.0], Some(5.0), None, Some(-10.0), false);
-        assert_eq!(target, [15.0, 20.0, 20.0]);
+        let target = compute_target(&pos3(10.0, 20.0, 30.0), &axes(Some(5.0), None, Some(-10.0)), false);
+        assert_eq!(target[0], 15.0);
+        assert_eq!(target[1], 20.0);
+        assert_eq!(target[2], 20.0);
     }
 
     #[test]
     fn test_zero_distance_move() {
-        let m = LinearMove::new([5.0, 5.0, 5.0], [5.0, 5.0, 5.0], 1000.0, false);
+        let m = LinearMove::new(pos3(5.0, 5.0, 5.0), pos3(5.0, 5.0, 5.0), 1000.0, false);
         assert_eq!(m.distance(), 0.0);
         assert_eq!(m.duration_secs(1.0), 0.0);
     }

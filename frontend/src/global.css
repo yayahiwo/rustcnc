@@ -39,6 +39,10 @@
   --axis-y: #34d399;
   --axis-z: #4a9eff;
   --axis-a: #fbbf24;
+  --axis-b: #a78bfa;
+  --axis-c: #f97316;
+  --axis-u: #ec4899;
+  --axis-v: #14b8a6;
 
   /* Spacing */
   --gap-xs: 4px;
@@ -126,6 +130,7 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: var(--gap-sm) var(--gap-md);
+  padding-right: 52px;
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-color);
   font-size: var(--font-size-sm);

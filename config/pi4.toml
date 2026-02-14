@@ -10,24 +10,29 @@
 [server]
 host = "0.0.0.0"
 port = 8080
+ws_tick_rate_hz = 100
+ws_idle_tick_rate_hz = 5
 
 [serial]
 baud_rate = 115200
-timeout_ms = 50
+status_poll_rate_hz = 10
 
 [streamer]
-buffer_size = 128
-status_poll_hz = 10
-pin_core = 3
-realtime_priority = true
+rx_buffer_size = 128
+cpu_pin_core = 3
+rt_priority = 80
+response_timeout_ms = 5000
 
 [logging]
 level = "info"
-file = "/var/log/rustcnc.log"
+log_dir = "/var/log/rustcnc"
+console_output = false
 
 [simulator]
 enabled = false
+motion_speed_factor = 10.0
+startup_delay_ms = 100
 
 [files]
-storage_dir = "/home/pi/gcode_files"
+upload_dir = "/home/pi/gcode_files"
 max_file_size_mb = 200

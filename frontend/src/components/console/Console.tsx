@@ -10,11 +10,14 @@ const Console: Component = () => {
   const [historyIdx, setHistoryIdx] = createSignal(-1);
   let outputRef: HTMLDivElement | undefined;
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages (only if user is near bottom)
   createEffect(() => {
     consoleLines(); // track dependency
     if (outputRef) {
-      outputRef.scrollTop = outputRef.scrollHeight;
+      const isAtBottom = outputRef.scrollHeight - outputRef.scrollTop - outputRef.clientHeight < 50;
+      if (isAtBottom) {
+        outputRef.scrollTop = outputRef.scrollHeight;
+      }
     }
   });
 

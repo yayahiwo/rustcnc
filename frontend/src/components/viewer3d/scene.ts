@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { createGrid } from './grid';
+import { disposeTool } from './tool';
+import { clearToolpath } from './toolpath';
 
 let renderer: THREE.WebGLRenderer | null = null;
 let scene: THREE.Scene | null = null;
@@ -96,12 +98,28 @@ export function disposeScene(): void {
     controls.dispose();
     controls = null;
   }
+  // Clean up tool and toolpath module globals
+  disposeTool();
+  clearToolpath();
+  // Dispose all geometries and materials
+  if (scene) {
+    scene.traverse((obj: any) => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach((m: any) => m.dispose());
+        } else {
+          obj.material.dispose();
+        }
+      }
+    });
+    scene = null;
+  }
   if (renderer) {
     renderer.dispose();
     renderer.domElement.remove();
     renderer = null;
   }
-  scene = null;
   camera = null;
 }
 
@@ -111,4 +129,73 @@ export function resetCamera(): void {
     controls.target.set(0, 0, 0);
     controls.update();
   }
+}
+
+export function zoomCamera(factor: number): void {
+  if (!camera || !controls) return;
+  const dir = new THREE.Vector3()
+    .subVectors(camera.position, controls.target)
+    .multiplyScalar(1 - factor);
+  camera.position.sub(dir);
+  controls.update();
+}
+
+export function fitToScene(): void {
+  if (!scene || !camera || !controls) return;
+  const box = new THREE.Box3();
+  scene.traverse((obj) => {
+    if (obj instanceof THREE.LineSegments) {
+      box.expandByObject(obj);
+    }
+  });
+  if (box.isEmpty()) {
+    resetCamera();
+    return;
+  }
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const distance = maxDim * 1.5;
+  camera.position.set(
+    center.x + distance,
+    center.y + distance,
+    center.z + distance * 0.7,
+  );
+  controls.target.copy(center);
+  controls.update();
+}
+
+export type ViewPreset = 'top' | 'front' | 'right' | '3d';
+
+export function setCameraView(preset: ViewPreset): void {
+  if (!camera || !controls) return;
+  const target = controls.target.clone();
+  const dist = camera.position.distanceTo(target);
+  switch (preset) {
+    case 'top':
+      camera.position.set(target.x, target.y, target.z + dist);
+      camera.up.set(0, 1, 0);
+      break;
+    case 'front':
+      camera.position.set(target.x, target.y - dist, target.z);
+      camera.up.set(0, 0, 1);
+      break;
+    case 'right':
+      camera.position.set(target.x + dist, target.y, target.z);
+      camera.up.set(0, 0, 1);
+      break;
+    case '3d':
+      camera.position.set(
+        target.x + dist * 0.577,
+        target.y + dist * 0.577,
+        target.z + dist * 0.577,
+      );
+      camera.up.set(0, 0, 1);
+      break;
+  }
+  controls.update();
+}
+
+export function getControls(): OrbitControls | null {
+  return controls;
 }

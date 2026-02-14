@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use tokio::sync::broadcast;
 use tokio::time::{interval, Duration};
-use tracing::trace;
 
 use rustcnc_core::machine::{
     AccessoryState, BufferState, InputPins, MachineSnapshot, MachineState, FirmwareType,
@@ -23,8 +22,8 @@ pub async fn broadcaster_task(
     active_rate_hz: u32,
     idle_rate_hz: u32,
 ) {
-    let active_interval = Duration::from_micros(1_000_000 / active_rate_hz as u64);
-    let idle_interval = Duration::from_micros(1_000_000 / idle_rate_hz as u64);
+    let active_interval = Duration::from_micros(1_000_000 / active_rate_hz.max(1) as u64);
+    let idle_interval = Duration::from_micros(1_000_000 / idle_rate_hz.max(1) as u64);
 
     let mut ticker = interval(idle_interval);
     let mut is_active = false;
@@ -59,26 +58,32 @@ pub fn read_snapshot_pub(s: &SharedMachineState) -> MachineSnapshot {
 
 /// Read a complete snapshot from atomic shared state
 fn read_snapshot(s: &SharedMachineState) -> MachineSnapshot {
-    let state_byte = s.state.load(Ordering::Relaxed);
-    let mpos = s.machine_pos();
-    let wpos = s.work_pos();
+    let state_u16 = s.state.load(Ordering::Acquire);
 
     MachineSnapshot {
-        state: MachineState::from_byte(state_byte),
-        machine_pos: rustcnc_core::machine::Position::new(mpos[0], mpos[1], mpos[2]),
-        work_pos: rustcnc_core::machine::Position::new(wpos[0], wpos[1], wpos[2]),
-        feed_rate: s.feed_rate_x1000.load(Ordering::Relaxed) as f64 / 1000.0,
-        spindle_speed: s.spindle_rpm_x1000.load(Ordering::Relaxed) as f64 / 1000.0,
+        state: MachineState::from_u16(state_u16),
+        machine_pos: s.machine_pos(),
+        work_pos: s.work_pos(),
+        feed_rate: s.feed_rate_x1000.load(Ordering::Acquire) as f64 / 1000.0,
+        spindle_speed: s.spindle_rpm_x1000.load(Ordering::Acquire) as f64 / 1000.0,
         overrides: Overrides {
-            feed: s.feed_override.load(Ordering::Relaxed),
-            rapids: s.rapid_override.load(Ordering::Relaxed),
-            spindle: s.spindle_override.load(Ordering::Relaxed),
+            feed: s.feed_override.load(Ordering::Acquire),
+            rapids: s.rapid_override.load(Ordering::Acquire),
+            spindle: s.spindle_override.load(Ordering::Acquire),
         },
-        accessories: AccessoryState::default(),
+        accessories: AccessoryState {
+            spindle_cw: s.spindle_cw.load(Ordering::Acquire),
+            spindle_ccw: s.spindle_ccw.load(Ordering::Acquire),
+            flood_coolant: s.coolant_flood.load(Ordering::Acquire),
+            mist_coolant: s.coolant_mist.load(Ordering::Acquire),
+        },
+        // TODO: InputPins and BufferState are available in StatusReport but not yet
+        // stored in SharedMachineState. Add atomic fields for these when needed.
         input_pins: InputPins::default(),
         buffer: BufferState::default(),
-        line_number: s.line_number.load(Ordering::Relaxed),
-        connected: s.connected.load(Ordering::Relaxed),
+        line_number: s.line_number.load(Ordering::Acquire),
+        connected: s.connected.load(Ordering::Acquire),
+        // TODO: Store firmware type in SharedMachineState when Welcome message is parsed
         firmware: FirmwareType::Unknown,
     }
 }

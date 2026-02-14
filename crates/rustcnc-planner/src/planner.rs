@@ -205,8 +205,9 @@ fn feed_lines(
 ) {
     let Some(file) = file else { return };
 
-    // Send up to 16 lines at a time
-    let batch_size = 16;
+    // Send up to 4 lines at a time (conservative to reduce backlog;
+    // the streamer re-queues lines that can't fit in the GRBL buffer)
+    let batch_size = 4;
     let mut sent = 0;
 
     while *line_idx < file.lines.len() && sent < batch_size {

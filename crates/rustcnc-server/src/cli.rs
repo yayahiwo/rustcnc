@@ -15,17 +15,17 @@ pub struct Cli {
     #[arg(short, long)]
     pub port: Option<String>,
 
-    /// Baud rate
-    #[arg(short, long, default_value_t = 115200)]
-    pub baud: u32,
+    /// Baud rate (overrides config file)
+    #[arg(short, long)]
+    pub baud: Option<u32>,
 
-    /// Server listen address
-    #[arg(long, default_value = "0.0.0.0")]
-    pub host: String,
+    /// Server listen address (overrides config file)
+    #[arg(long)]
+    pub host: Option<String>,
 
-    /// Server listen port
-    #[arg(long, default_value_t = 8080)]
-    pub listen_port: u16,
+    /// Server listen port (overrides config file)
+    #[arg(long)]
+    pub listen_port: Option<u16>,
 
     /// Log level (trace, debug, info, warn, error)
     #[arg(long, default_value = "info")]

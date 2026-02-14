@@ -2,6 +2,7 @@ import { Component, Show } from 'solid-js';
 import { machineState, connected, jobProgress } from '../../lib/store';
 import { ws } from '../../lib/ws';
 import EmergencyStop from './EmergencyStop';
+import LayoutSettings from '../layout/LayoutSettings';
 import styles from './ControlBar.module.css';
 
 const ControlBar: Component = () => {
@@ -74,6 +75,7 @@ const ControlBar: Component = () => {
       </div>
 
       <div class={styles.right}>
+        <LayoutSettings />
         <EmergencyStop />
       </div>
     </div>

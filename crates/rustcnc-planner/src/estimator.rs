@@ -10,7 +10,7 @@ use rustcnc_core::gcode::{GCodeFile, MoveType};
 pub fn estimate_duration(file: &GCodeFile, max_rapid_rate: f64) -> f64 {
     let mut total_secs = 0.0;
     let mut current_feed = 0.0;
-    let mut current_pos = [0.0f64; 3];
+    let mut current_pos = vec![0.0f64; 3];
 
     for line in &file.lines {
         // Extract feed rate if present
@@ -40,15 +40,18 @@ pub fn estimate_duration(file: &GCodeFile, max_rapid_rate: f64) -> f64 {
                 }
                 _ => {}
             }
-            current_pos = *endpoint;
+            current_pos = endpoint.clone();
         }
     }
 
     total_secs
 }
 
-fn distance(a: &[f64; 3], b: &[f64; 3]) -> f64 {
-    ((b[0] - a[0]).powi(2) + (b[1] - a[1]).powi(2) + (b[2] - a[2]).powi(2)).sqrt()
+fn distance(a: &[f64], b: &[f64]) -> f64 {
+    a.iter().zip(b.iter())
+        .map(|(ai, bi)| (bi - ai).powi(2))
+        .sum::<f64>()
+        .sqrt()
 }
 
 /// Format seconds into a human-readable duration string

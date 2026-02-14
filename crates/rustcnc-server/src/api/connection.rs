@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
+use tracing::warn;
 
 use crate::state::AppState;
 
@@ -26,23 +27,31 @@ pub struct PortInfoResponse {
 }
 
 /// POST /api/connect
+///
+/// TODO: Implement dynamic serial port connection. Requires sending a
+/// connect command to the streamer thread so it can open a new serial port
+/// at runtime, or restarting the streamer with the new port configuration.
 pub async fn connect(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<ConnectRequest>,
 ) -> Result<Json<ConnectResponse>, StatusCode> {
-    // Connection management will be implemented with dynamic serial port handling
-    Ok(Json(ConnectResponse {
-        connected: true,
-        port: req.port,
-        message: "Connection handling via WebSocket recommended".into(),
-    }))
+    warn!(
+        "Connect endpoint not yet implemented - port: {} baud: {:?}",
+        req.port, req.baud_rate
+    );
+    Err(StatusCode::NOT_IMPLEMENTED)
 }
 
 /// POST /api/disconnect
+///
+/// TODO: Implement dynamic serial port disconnection. Requires sending a
+/// disconnect command to the streamer thread so it can close the current
+/// serial port gracefully.
 pub async fn disconnect(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    Ok(Json(serde_json::json!({"disconnected": true})))
+    warn!("Disconnect endpoint not yet implemented");
+    Err(StatusCode::NOT_IMPLEMENTED)
 }
 
 /// GET /api/ports

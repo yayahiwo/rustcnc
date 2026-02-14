@@ -6,15 +6,11 @@
 pub enum SimCommand {
     /// G0 rapid move
     RapidMove {
-        x: Option<f64>,
-        y: Option<f64>,
-        z: Option<f64>,
+        axes: [Option<f64>; 8],
     },
     /// G1 linear move
     LinearMove {
-        x: Option<f64>,
-        y: Option<f64>,
-        z: Option<f64>,
+        axes: [Option<f64>; 8],
         f: Option<f64>,
     },
     /// G28 home
@@ -47,15 +43,11 @@ pub enum SimCommand {
     RequestSettings,
     /// G10 L20 P1 set work offset
     SetWorkOffset {
-        x: Option<f64>,
-        y: Option<f64>,
-        z: Option<f64>,
+        axes: [Option<f64>; 8],
     },
     /// Jog command ($J=...)
     Jog {
-        x: Option<f64>,
-        y: Option<f64>,
-        z: Option<f64>,
+        axes: [Option<f64>; 8],
         f: f64,
         incremental: bool,
     },
@@ -106,15 +98,18 @@ pub fn parse_sim_command(line: &str) -> SimCommand {
 
     // Motion commands
     if line.starts_with("G0") || line.starts_with("G00") {
-        let (x, y, z, _) = extract_coords(&line);
-        return SimCommand::RapidMove { x, y, z };
+        let (axes, _) = extract_coords(&line);
+        return SimCommand::RapidMove { axes };
     }
     if line.starts_with("G1") || line.starts_with("G01") {
-        let (x, y, z, f) = extract_coords(&line);
-        return SimCommand::LinearMove { x, y, z, f };
+        let (axes, f) = extract_coords(&line);
+        return SimCommand::LinearMove { axes, f };
     }
 
-    // M-codes
+    // M-codes — M30/M2 must be checked before M3 (prefix overlap)
+    if line.starts_with("M30") || line.starts_with("M2") || line.starts_with("M02") {
+        return SimCommand::ProgramEnd;
+    }
     if line.starts_with("M3") || line.starts_with("M03") {
         let s = extract_word(&line, 'S');
         return SimCommand::SpindleCW { speed: s };
@@ -132,19 +127,24 @@ pub fn parse_sim_command(line: &str) -> SimCommand {
     if line.starts_with("M9") || line.starts_with("M09") {
         return SimCommand::CoolantOff;
     }
-    if line.starts_with("M2") || line.starts_with("M02") || line.starts_with("M30") {
-        return SimCommand::ProgramEnd;
-    }
 
     SimCommand::Unknown(line)
 }
 
-/// Extract X, Y, Z, F coordinate words from a G-code line
-fn extract_coords(line: &str) -> (Option<f64>, Option<f64>, Option<f64>, Option<f64>) {
+/// Extract axis coordinate words and feed rate from a G-code line.
+/// Returns ([X,Y,Z,A,B,C,U,V], F)
+fn extract_coords(line: &str) -> ([Option<f64>; 8], Option<f64>) {
     (
-        extract_word(line, 'X'),
-        extract_word(line, 'Y'),
-        extract_word(line, 'Z'),
+        [
+            extract_word(line, 'X'),
+            extract_word(line, 'Y'),
+            extract_word(line, 'Z'),
+            extract_word(line, 'A'),
+            extract_word(line, 'B'),
+            extract_word(line, 'C'),
+            extract_word(line, 'U'),
+            extract_word(line, 'V'),
+        ],
         extract_word(line, 'F'),
     )
 }
@@ -155,9 +155,12 @@ fn extract_word(line: &str, letter: char) -> Option<f64> {
     let pos = line.find(upper)?;
     let rest = &line[pos + 1..];
     // Take characters until we hit a non-numeric character (except -, .)
+    // Only allow '-' as the first character (negative sign)
     let num_str: String = rest
         .chars()
-        .take_while(|c| c.is_ascii_digit() || *c == '.' || *c == '-')
+        .enumerate()
+        .take_while(|(i, c)| c.is_ascii_digit() || *c == '.' || (*c == '-' && *i == 0))
+        .map(|(_, c)| c)
         .collect();
     num_str.parse().ok()
 }
@@ -165,11 +168,9 @@ fn extract_word(line: &str, letter: char) -> Option<f64> {
 /// Parse a jog command: "$J=G91X10Y0F1000"
 fn parse_jog_command(s: &str) -> SimCommand {
     let incremental = s.contains("G91");
-    let (x, y, z, f) = extract_coords(s);
+    let (axes, f) = extract_coords(s);
     SimCommand::Jog {
-        x,
-        y,
-        z,
+        axes,
         f: f.unwrap_or(100.0),
         incremental,
     }
@@ -182,10 +183,10 @@ mod tests {
     #[test]
     fn test_parse_rapid() {
         match parse_sim_command("G0 X10 Y20") {
-            SimCommand::RapidMove { x, y, z } => {
-                assert_eq!(x, Some(10.0));
-                assert_eq!(y, Some(20.0));
-                assert_eq!(z, None);
+            SimCommand::RapidMove { axes } => {
+                assert_eq!(axes[0], Some(10.0));
+                assert_eq!(axes[1], Some(20.0));
+                assert_eq!(axes[2], None);
             }
             other => panic!("Expected RapidMove, got {:?}", other),
         }
@@ -194,10 +195,10 @@ mod tests {
     #[test]
     fn test_parse_linear() {
         match parse_sim_command("G1 X10 Y20 F1000") {
-            SimCommand::LinearMove { x, y, z, f } => {
-                assert_eq!(x, Some(10.0));
-                assert_eq!(y, Some(20.0));
-                assert_eq!(z, None);
+            SimCommand::LinearMove { axes, f } => {
+                assert_eq!(axes[0], Some(10.0));
+                assert_eq!(axes[1], Some(20.0));
+                assert_eq!(axes[2], None);
                 assert_eq!(f, Some(1000.0));
             }
             other => panic!("Expected LinearMove, got {:?}", other),
@@ -218,15 +219,13 @@ mod tests {
     fn test_parse_jog() {
         match parse_sim_command("$J=G91X10F1000") {
             SimCommand::Jog {
-                x,
-                y,
-                z,
+                axes,
                 f,
                 incremental,
             } => {
-                assert_eq!(x, Some(10.0));
-                assert_eq!(y, None);
-                assert_eq!(z, None);
+                assert_eq!(axes[0], Some(10.0));
+                assert_eq!(axes[1], None);
+                assert_eq!(axes[2], None);
                 assert_eq!(f, 1000.0);
                 assert!(incremental);
             }
@@ -247,10 +246,10 @@ mod tests {
     #[test]
     fn test_parse_negative_coords() {
         match parse_sim_command("G0 X-10.5 Z-2.0") {
-            SimCommand::RapidMove { x, y, z } => {
-                assert_eq!(x, Some(-10.5));
-                assert_eq!(y, None);
-                assert_eq!(z, Some(-2.0));
+            SimCommand::RapidMove { axes } => {
+                assert_eq!(axes[0], Some(-10.5));
+                assert_eq!(axes[1], None);
+                assert_eq!(axes[2], Some(-2.0));
             }
             other => panic!("Expected RapidMove, got {:?}", other),
         }

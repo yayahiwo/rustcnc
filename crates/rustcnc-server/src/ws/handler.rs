@@ -8,7 +8,7 @@ use axum::{
     response::IntoResponse,
 };
 use futures_util::{SinkExt, StreamExt};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 
 use rustcnc_core::grbl::realtime::RealtimeCommand;
 use rustcnc_core::ws_protocol::{
@@ -42,22 +42,30 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     // Subscribe to broadcast channel
     let mut broadcast_rx = state.ws_broadcast_tx.subscribe();
 
-    // Task 1: Forward broadcast messages to this WS client
-    let send_task = tokio::spawn(async move {
+    // Per-client direct message channel (for Ping/Pong, PortList, etc.)
+    let (direct_tx, mut direct_rx) = tokio::sync::mpsc::channel::<ServerMessage>(32);
+
+    // Task 1: Forward broadcast and direct messages to this WS client
+    let mut send_task = tokio::spawn(async move {
         loop {
-            match broadcast_rx.recv().await {
-                Ok(msg) => {
-                    if let Ok(json) = codec::encode_server_message(&msg) {
-                        if ws_tx.send(Message::Text(json.into())).await.is_err() {
-                            break; // Client disconnected
+            let msg = tokio::select! {
+                result = broadcast_rx.recv() => {
+                    match result {
+                        Ok(msg) => msg,
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                            debug!("WebSocket client lagged by {} messages", n);
+                            continue;
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                            break;
                         }
                     }
                 }
-                Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
-                    debug!("WebSocket client lagged by {} messages", n);
-                }
-                Err(tokio::sync::broadcast::error::RecvError::Closed) => {
-                    break;
+                Some(msg) = direct_rx.recv() => msg,
+            };
+            if let Ok(json) = codec::encode_server_message(&msg) {
+                if ws_tx.send(Message::Text(json.into())).await.is_err() {
+                    break; // Client disconnected
                 }
             }
         }
@@ -65,13 +73,13 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
     // Task 2: Receive commands from this WS client
     let state_clone = state.clone();
-    let recv_task = tokio::spawn(async move {
+    let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(msg)) = ws_rx.next().await {
             match msg {
                 Message::Text(text) => {
                     match codec::decode_client_message(&text) {
                         Ok(client_msg) => {
-                            handle_client_message(client_msg, &state_clone).await;
+                            handle_client_message(client_msg, &state_clone, &direct_tx).await;
                         }
                         Err(e) => {
                             warn!("Invalid WebSocket message: {}", e);
@@ -84,17 +92,21 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
         }
     });
 
-    // Wait for either task to finish (client disconnect)
+    // Wait for either task to finish, then abort the other
     tokio::select! {
-        _ = send_task => {}
-        _ = recv_task => {}
+        _ = &mut send_task => { recv_task.abort(); }
+        _ = &mut recv_task => { send_task.abort(); }
     }
 
     info!("WebSocket client disconnected");
 }
 
 /// Handle a decoded client message
-async fn handle_client_message(msg: ClientMessage, state: &AppState) {
+async fn handle_client_message(
+    msg: ClientMessage,
+    state: &AppState,
+    direct_tx: &tokio::sync::mpsc::Sender<ServerMessage>,
+) {
     match msg {
         ClientMessage::RealtimeCommand(cmd_msg) => {
             if let Some(cmd) = RealtimeCommand::from_str_name(&cmd_msg.command) {
@@ -158,12 +170,12 @@ async fn handle_client_message(msg: ClientMessage, state: &AppState) {
                     },
                 })
                 .collect();
-            let _ = state
-                .ws_broadcast_tx
-                .send(ServerMessage::PortList(port_infos));
+            // Send directly to requesting client, not broadcast
+            let _ = direct_tx.send(ServerMessage::PortList(port_infos)).await;
         }
         ClientMessage::Ping => {
-            let _ = state.ws_broadcast_tx.send(ServerMessage::Pong);
+            // Send Pong directly to requesting client, not broadcast
+            let _ = direct_tx.send(ServerMessage::Pong).await;
         }
     }
 }

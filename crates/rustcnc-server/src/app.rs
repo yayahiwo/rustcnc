@@ -6,6 +6,7 @@ use axum::{
 };
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
+use tracing::warn;
 
 use crate::api;
 use crate::state::AppState;
@@ -13,6 +14,9 @@ use crate::static_files::static_handler;
 use crate::ws::handler::ws_handler;
 
 pub fn build_router(state: Arc<AppState>) -> Router {
+    warn!("CORS is set to permissive mode - any origin can access the CNC controller API");
+    let cors_layer = CorsLayer::permissive();
+
     let api_routes = Router::new()
         // Connection management
         .route("/api/connect", post(api::connection::connect))
@@ -47,7 +51,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(api_routes)
         // Static files (SolidJS frontend) -- fallback for SPA routing
         .fallback(static_handler)
-        .layer(CorsLayer::permissive())
+        .layer(cors_layer)
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

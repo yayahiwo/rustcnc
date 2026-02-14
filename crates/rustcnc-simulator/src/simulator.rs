@@ -118,16 +118,16 @@ fn simulator_thread(
 /// Returns true if it was a real-time command (consumed).
 fn handle_realtime_byte(byte: u8, state: &mut GrblStateMachine, tx: &Sender<Vec<u8>>) -> bool {
     match byte {
-        realtime::RT_STATUS_QUERY | b'?' => {
+        realtime::RT_STATUS_QUERY => {
             let report = state.status_report();
             let _ = tx.send(format!("{}\r\n", report).into_bytes());
             true
         }
-        realtime::RT_FEED_HOLD | b'!' => {
+        realtime::RT_FEED_HOLD => {
             state.feed_hold();
             true
         }
-        realtime::RT_CYCLE_START | b'~' => {
+        realtime::RT_CYCLE_START => {
             state.cycle_start();
             true
         }
@@ -211,19 +211,19 @@ fn process_command(line: &str, state: &mut GrblStateMachine, config: &SimulatorC
     trace!("Simulator processing: {} -> {:?}", line, cmd);
 
     match cmd {
-        SimCommand::RapidMove { x, y, z } => {
-            let target = compute_target(&state.position, x, y, z, state.absolute_mode);
+        SimCommand::RapidMove { axes } => {
+            let target = compute_target(&state.position, &axes, state.absolute_mode);
             state.state = SimState::Run;
             // Instant move in simulator (simplified)
             state.position = target;
             state.state = SimState::Idle;
             "ok\r\n".to_string()
         }
-        SimCommand::LinearMove { x, y, z, f } => {
+        SimCommand::LinearMove { axes, f } => {
             if let Some(feed) = f {
                 state.feed_rate = feed;
             }
-            let target = compute_target(&state.position, x, y, z, state.absolute_mode);
+            let target = compute_target(&state.position, &axes, state.absolute_mode);
             state.state = SimState::Run;
             state.position = target;
             state.state = SimState::Idle;
@@ -231,7 +231,7 @@ fn process_command(line: &str, state: &mut GrblStateMachine, config: &SimulatorC
         }
         SimCommand::Home | SimCommand::HomingCycle => {
             state.state = SimState::Home;
-            state.position = [0.0, 0.0, 0.0];
+            state.position = [0.0; 8];
             state.homed = true;
             state.state = SimState::Idle;
             "ok\r\n".to_string()
@@ -316,23 +316,19 @@ fn process_command(line: &str, state: &mut GrblStateMachine, config: &SimulatorC
             response.push_str("ok\r\n");
             response
         }
-        SimCommand::Jog { x, y, z, f, incremental } => {
-            let target = compute_target(&state.position, x, y, z, !incremental);
+        SimCommand::Jog { axes, f, incremental } => {
+            let target = compute_target(&state.position, &axes, !incremental);
             state.state = SimState::Jog;
             state.feed_rate = f;
             state.position = target;
             state.state = SimState::Idle;
             "ok\r\n".to_string()
         }
-        SimCommand::SetWorkOffset { x, y, z } => {
-            if let Some(x) = x {
-                state.work_offset[0] = state.position[0] - x;
-            }
-            if let Some(y) = y {
-                state.work_offset[1] = state.position[1] - y;
-            }
-            if let Some(z) = z {
-                state.work_offset[2] = state.position[2] - z;
+        SimCommand::SetWorkOffset { axes } => {
+            for i in 0..8 {
+                if let Some(val) = axes[i] {
+                    state.work_offset[i] = state.position[i] - val;
+                }
             }
             "ok\r\n".to_string()
         }

@@ -11,8 +11,8 @@ pub struct GCodeLine {
     pub byte_len: usize,
     /// Parsed move type for visualization
     pub move_type: Option<MoveType>,
-    /// Endpoint position if this is a motion command
-    pub endpoint: Option<[f64; 3]>,
+    /// Endpoint position if this is a motion command (up to 8 axes: X,Y,Z,A,B,C,U,V)
+    pub endpoint: Option<Vec<f64>>,
 }
 
 impl GCodeLine {
@@ -74,6 +74,18 @@ pub enum MoveType {
     ProgramEnd,  // M2/M30
 }
 
+/// Check if `text` starts with `code` and the next character (if any) is not an ASCII digit.
+/// This prevents false prefix matches like M5 matching M50.
+fn matches_gcode(text: &str, code: &str) -> bool {
+    if !text.starts_with(code) {
+        return false;
+    }
+    text[code.len()..]
+        .chars()
+        .next()
+        .map_or(true, |c| !c.is_ascii_digit())
+}
+
 /// Detect the primary move type from a G-code line
 fn detect_move_type(text: &str) -> Option<MoveType> {
     let text = text.trim();
@@ -82,55 +94,54 @@ fn detect_move_type(text: &str) -> Option<MoveType> {
     }
 
     // Check for G commands
-    if text.starts_with("G0 ") || text == "G0" || text.starts_with("G00") {
+    if matches_gcode(text, "G0") || matches_gcode(text, "G00") {
         return Some(MoveType::Rapid);
     }
-    if text.starts_with("G1 ") || text == "G1" || text.starts_with("G01") {
+    if matches_gcode(text, "G1") || matches_gcode(text, "G01") {
         return Some(MoveType::Linear);
     }
-    if text.starts_with("G2 ") || text == "G2" || text.starts_with("G02") {
+    if matches_gcode(text, "G2") || matches_gcode(text, "G02") {
         return Some(MoveType::ArcCW);
     }
-    if text.starts_with("G3 ") || text == "G3" || text.starts_with("G03") {
+    if matches_gcode(text, "G3") || matches_gcode(text, "G03") {
         return Some(MoveType::ArcCCW);
     }
-    if text.starts_with("G38") {
+    if matches_gcode(text, "G38") {
         return Some(MoveType::Probe);
     }
-    if text.starts_with("G4 ") || text == "G4" || text.starts_with("G04") {
+    if matches_gcode(text, "G4") || matches_gcode(text, "G04") {
         return Some(MoveType::Dwell);
     }
-    if text.starts_with("G28") || text.starts_with("G30") {
+    if matches_gcode(text, "G28") || matches_gcode(text, "G30") {
         return Some(MoveType::Home);
     }
-    if text.starts_with("G54")
-        || text.starts_with("G55")
-        || text.starts_with("G56")
-        || text.starts_with("G57")
-        || text.starts_with("G58")
-        || text.starts_with("G59")
+    if matches_gcode(text, "G54")
+        || matches_gcode(text, "G55")
+        || matches_gcode(text, "G56")
+        || matches_gcode(text, "G57")
+        || matches_gcode(text, "G58")
+        || matches_gcode(text, "G59")
     {
         return Some(MoveType::CoordSystem);
     }
 
     // Check for M commands
-    if text.starts_with("M6") || text.starts_with("M06") {
+    if matches_gcode(text, "M6") || matches_gcode(text, "M06") {
         return Some(MoveType::ToolChange);
     }
-    // M30 must be checked before M3 (prefix overlap)
-    if text.starts_with("M30") || text.starts_with("M2 ") || text.starts_with("M02") || text == "M2" {
+    if matches_gcode(text, "M30") || matches_gcode(text, "M2") || matches_gcode(text, "M02") {
         return Some(MoveType::ProgramEnd);
     }
-    if text.starts_with("M3 ") || text == "M3" || text.starts_with("M03") || text.starts_with("M4 ") || text == "M4" || text.starts_with("M04") {
+    if matches_gcode(text, "M3") || matches_gcode(text, "M03") || matches_gcode(text, "M4") || matches_gcode(text, "M04") {
         return Some(MoveType::SpindleOn);
     }
-    if text.starts_with("M5") || text.starts_with("M05") {
+    if matches_gcode(text, "M5") || matches_gcode(text, "M05") {
         return Some(MoveType::SpindleOff);
     }
-    if text.starts_with("M7") || text.starts_with("M07") || text.starts_with("M8") || text.starts_with("M08") {
+    if matches_gcode(text, "M7") || matches_gcode(text, "M07") || matches_gcode(text, "M8") || matches_gcode(text, "M08") {
         return Some(MoveType::CoolantOn);
     }
-    if text.starts_with("M9") || text.starts_with("M09") {
+    if matches_gcode(text, "M9") || matches_gcode(text, "M09") {
         return Some(MoveType::CoolantOff);
     }
 
@@ -173,34 +184,37 @@ impl GCodeFile {
     }
 }
 
-/// 3D bounding box of a toolpath
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+/// Bounding box of a toolpath (supports up to 8 axes)
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BoundingBox {
-    pub min: [f64; 3],
-    pub max: [f64; 3],
+    pub min: Vec<f64>,
+    pub max: Vec<f64>,
 }
 
 impl BoundingBox {
     pub fn new() -> Self {
         Self {
-            min: [f64::MAX, f64::MAX, f64::MAX],
-            max: [f64::MIN, f64::MIN, f64::MIN],
+            min: vec![f64::MAX; 3],
+            max: vec![f64::MIN; 3],
         }
     }
 
-    pub fn expand(&mut self, point: &[f64; 3]) {
-        for i in 0..3 {
+    pub fn expand(&mut self, point: &[f64]) {
+        // Grow the bounding box vectors if the point has more axes
+        while self.min.len() < point.len() {
+            self.min.push(f64::MAX);
+            self.max.push(f64::MIN);
+        }
+        for i in 0..point.len() {
             self.min[i] = self.min[i].min(point[i]);
             self.max[i] = self.max[i].max(point[i]);
         }
     }
 
-    pub fn size(&self) -> [f64; 3] {
-        [
-            self.max[0] - self.min[0],
-            self.max[1] - self.min[1],
-            self.max[2] - self.min[2],
-        ]
+    pub fn size(&self) -> Vec<f64> {
+        self.min.iter().zip(self.max.iter())
+            .map(|(mn, mx)| mx - mn)
+            .collect()
     }
 }
 
@@ -256,8 +270,8 @@ mod tests {
         let mut bb = BoundingBox::new();
         bb.expand(&[10.0, 20.0, -5.0]);
         bb.expand(&[-5.0, 30.0, 0.0]);
-        assert_eq!(bb.min, [-5.0, 20.0, -5.0]);
-        assert_eq!(bb.max, [10.0, 30.0, 0.0]);
-        assert_eq!(bb.size(), [15.0, 10.0, 5.0]);
+        assert_eq!(bb.min, vec![-5.0, 20.0, -5.0]);
+        assert_eq!(bb.max, vec![10.0, 30.0, 0.0]);
+        assert_eq!(bb.size(), vec![15.0, 10.0, 5.0]);
     }
 }

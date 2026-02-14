@@ -1,12 +1,16 @@
-import { Component, createSignal } from 'solid-js';
+import { Component, createSignal, For } from 'solid-js';
 import { machinePos, workPos, machineState } from '../../lib/store';
+import { layout, ALL_AXES } from '../../lib/widgetStore';
 import { formatCoord } from '../../lib/format';
 import AxisDisplay from './AxisDisplay';
 import styles from './DRO.module.css';
+import type { Position } from '../../lib/types';
 
 const DRO: Component = () => {
   const [showWork, setShowWork] = createSignal(true);
   const pos = () => showWork() ? workPos() : machinePos();
+
+  const visibleAxes = () => ALL_AXES.slice(0, layout().axisCount);
 
   const stateColor = () => {
     const s = machineState();
@@ -40,9 +44,15 @@ const DRO: Component = () => {
         {machineState()}
       </div>
       <div class={styles.axes}>
-        <AxisDisplay axis="X" value={formatCoord(pos().x)} color="var(--axis-x)" />
-        <AxisDisplay axis="Y" value={formatCoord(pos().y)} color="var(--axis-y)" />
-        <AxisDisplay axis="Z" value={formatCoord(pos().z)} color="var(--axis-z)" />
+        <For each={visibleAxes()}>
+          {(axis) => (
+            <AxisDisplay
+              axis={axis.name}
+              value={formatCoord((pos() as Record<string, number | undefined>)[axis.key] ?? 0)}
+              color={axis.color}
+            />
+          )}
+        </For>
       </div>
     </div>
   );

@@ -1,3 +1,8 @@
+use tracing::warn;
+
+/// Maximum line length before the buffer is discarded to prevent unbounded growth.
+const MAX_LINE_LENGTH: usize = 1024;
+
 /// Incremental parser for GRBL serial output.
 ///
 /// Accumulates bytes until a newline is found, then parses the complete line
@@ -56,6 +61,10 @@ impl ResponseParser {
                     self.buffer.clear();
                 }
             } else {
+                if self.buffer.len() >= MAX_LINE_LENGTH {
+                    warn!("Response line exceeded {} bytes, discarding", MAX_LINE_LENGTH);
+                    self.buffer.clear();
+                }
                 self.buffer.push(byte);
             }
         }

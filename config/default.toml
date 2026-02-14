@@ -2,29 +2,29 @@
 
 [server]
 host = "0.0.0.0"
-port = 8080
+port = 8888
+ws_tick_rate_hz = 100
+ws_idle_tick_rate_hz = 5
 
 [serial]
 baud_rate = 115200
-timeout_ms = 100
+status_poll_rate_hz = 5
 
 [streamer]
-buffer_size = 128
-status_poll_hz = 5
+rx_buffer_size = 128
+response_timeout_ms = 5000
 # CPU core to pin streamer thread to (optional, Pi 4 recommended: 3)
-# pin_core = 3
-# Enable SCHED_FIFO real-time priority (Linux only, requires root/CAP_SYS_NICE)
-realtime_priority = false
+# cpu_pin_core = 3
 
 [logging]
 level = "info"
-# Log to file (optional)
-# file = "/var/log/rustcnc.log"
+console_output = true
 
 [simulator]
 enabled = false
-# response_delay_ms = 5
+motion_speed_factor = 10.0
+startup_delay_ms = 100
 
 [files]
-storage_dir = "gcode_files"
+upload_dir = "./gcode_files"
 max_file_size_mb = 100

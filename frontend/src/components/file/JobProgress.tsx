@@ -19,15 +19,19 @@ const JobProgressPanel: Component = () => {
   };
 
   return (
-    <Show when={job()}>
-      {(j) => (
-        <div class="panel">
-          <div class="panel-header">
-            <span>Job</span>
+    <div class="panel">
+      <div class="panel-header">
+        <span>Job</span>
+        <Show when={job()}>
+          {(j) => (
             <span class={styles.state} style={{ color: stateColor() }}>
               {j().state}
             </span>
-          </div>
+          )}
+        </Show>
+      </div>
+      <Show when={job()}>
+        {(j) => (
           <div class={styles.body}>
             <div class={styles.filename}>{j().file_name}</div>
 
@@ -62,9 +66,9 @@ const JobProgressPanel: Component = () => {
               </Show>
             </div>
           </div>
-        </div>
-      )}
-    </Show>
+        )}
+      </Show>
+    </div>
   );
 };
 

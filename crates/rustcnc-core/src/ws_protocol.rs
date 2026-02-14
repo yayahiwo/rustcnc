@@ -75,6 +75,16 @@ pub struct JogCommand {
     pub y: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub z: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub a: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub b: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub c: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub u: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub v: Option<f64>,
     pub feed: f64,
     pub incremental: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -84,20 +94,36 @@ pub struct JogCommand {
 impl JogCommand {
     /// Build the GRBL $J= jog command string
     pub fn to_grbl_command(&self) -> String {
+        use std::fmt::Write;
         let mut cmd = String::from("$J=G91");
         if !self.incremental {
             cmd = String::from("$J=G90");
         }
         if let Some(x) = self.x {
-            cmd.push_str(&format!("X{:.3}", x));
+            write!(cmd, "X{:.3}", x).unwrap();
         }
         if let Some(y) = self.y {
-            cmd.push_str(&format!("Y{:.3}", y));
+            write!(cmd, "Y{:.3}", y).unwrap();
         }
         if let Some(z) = self.z {
-            cmd.push_str(&format!("Z{:.3}", z));
+            write!(cmd, "Z{:.3}", z).unwrap();
         }
-        cmd.push_str(&format!("F{:.0}", self.feed));
+        if let Some(a) = self.a {
+            write!(cmd, "A{:.3}", a).unwrap();
+        }
+        if let Some(b) = self.b {
+            write!(cmd, "B{:.3}", b).unwrap();
+        }
+        if let Some(c) = self.c {
+            write!(cmd, "C{:.3}", c).unwrap();
+        }
+        if let Some(u) = self.u {
+            write!(cmd, "U{:.3}", u).unwrap();
+        }
+        if let Some(v) = self.v {
+            write!(cmd, "V{:.3}", v).unwrap();
+        }
+        write!(cmd, "F{:.0}", self.feed).unwrap();
         cmd
     }
 }
@@ -177,7 +203,7 @@ pub struct GCodeFileInfo {
     pub name: String,
     pub lines: Vec<GCodeLineInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub bounding_box: Option<[[f64; 3]; 2]>,
+    pub bounding_box: Option<[Vec<f64>; 2]>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -187,7 +213,7 @@ pub struct GCodeLineInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub move_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub endpoint: Option<[f64; 3]>,
+    pub endpoint: Option<Vec<f64>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -249,6 +275,11 @@ mod tests {
             x: Some(10.0),
             y: None,
             z: Some(-5.0),
+            a: None,
+            b: None,
+            c: None,
+            u: None,
+            v: None,
             feed: 1000.0,
             incremental: true,
             distance: None,
@@ -262,6 +293,11 @@ mod tests {
             x: Some(100.0),
             y: Some(200.0),
             z: None,
+            a: None,
+            b: None,
+            c: None,
+            u: None,
+            v: None,
             feed: 500.0,
             incremental: false,
             distance: None,

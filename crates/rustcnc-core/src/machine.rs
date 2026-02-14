@@ -24,31 +24,34 @@ impl Default for MachineState {
 }
 
 impl MachineState {
-    /// Encode state to a single byte for atomic storage
-    pub fn to_byte(self) -> u8 {
+    /// Encode state to a u16 for atomic storage.
+    /// High byte = state enum (0-9), low byte = substate.
+    pub fn to_u16(self) -> u16 {
         match self {
-            Self::Idle => 0,
-            Self::Run => 1,
-            Self::Hold(_) => 2,
-            Self::Jog => 3,
-            Self::Alarm(_) => 4,
-            Self::Door(_) => 5,
-            Self::Check => 6,
-            Self::Home => 7,
-            Self::Sleep => 8,
-            Self::Tool => 9,
+            Self::Idle => 0 << 8,
+            Self::Run => 1 << 8,
+            Self::Hold(sub) => (2 << 8) | sub as u16,
+            Self::Jog => 3 << 8,
+            Self::Alarm(sub) => (4 << 8) | sub as u16,
+            Self::Door(sub) => (5 << 8) | sub as u16,
+            Self::Check => 6 << 8,
+            Self::Home => 7 << 8,
+            Self::Sleep => 8 << 8,
+            Self::Tool => 9 << 8,
         }
     }
 
-    /// Decode state from a byte (without substates)
-    pub fn from_byte(b: u8) -> Self {
-        match b {
+    /// Decode state from a u16 (high byte = state enum, low byte = substate).
+    pub fn from_u16(v: u16) -> Self {
+        let state = (v >> 8) as u8;
+        let sub = (v & 0xFF) as u8;
+        match state {
             0 => Self::Idle,
             1 => Self::Run,
-            2 => Self::Hold(0),
+            2 => Self::Hold(sub),
             3 => Self::Jog,
-            4 => Self::Alarm(0),
-            5 => Self::Door(0),
+            4 => Self::Alarm(sub),
+            5 => Self::Door(sub),
             6 => Self::Check,
             7 => Self::Home,
             8 => Self::Sleep,
@@ -80,6 +83,10 @@ pub struct Position {
     pub b: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub c: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub u: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub v: Option<f64>,
 }
 
 impl Position {
@@ -91,6 +98,8 @@ impl Position {
             a: None,
             b: None,
             c: None,
+            u: None,
+            v: None,
         }
     }
 
@@ -98,12 +107,27 @@ impl Position {
         Self::default()
     }
 
-    /// Distance to another position (XYZ only)
+    /// Distance to another position (all configured axes)
     pub fn distance_to(&self, other: &Position) -> f64 {
-        ((other.x - self.x).powi(2)
+        let mut sum = (other.x - self.x).powi(2)
             + (other.y - self.y).powi(2)
-            + (other.z - self.z).powi(2))
-        .sqrt()
+            + (other.z - self.z).powi(2);
+        if let (Some(a1), Some(a2)) = (self.a, other.a) {
+            sum += (a2 - a1).powi(2);
+        }
+        if let (Some(b1), Some(b2)) = (self.b, other.b) {
+            sum += (b2 - b1).powi(2);
+        }
+        if let (Some(c1), Some(c2)) = (self.c, other.c) {
+            sum += (c2 - c1).powi(2);
+        }
+        if let (Some(u1), Some(u2)) = (self.u, other.u) {
+            sum += (u2 - u1).powi(2);
+        }
+        if let (Some(v1), Some(v2)) = (self.v, other.v) {
+            sum += (v2 - v1).powi(2);
+        }
+        sum.sqrt()
     }
 }
 
@@ -129,6 +153,11 @@ pub struct InputPins {
     pub limit_x: bool,
     pub limit_y: bool,
     pub limit_z: bool,
+    pub limit_a: bool,
+    pub limit_b: bool,
+    pub limit_c: bool,
+    pub limit_u: bool,
+    pub limit_v: bool,
     pub probe: bool,
     pub door: bool,
     pub hold: bool,

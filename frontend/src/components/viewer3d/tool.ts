@@ -3,8 +3,20 @@ import { getScene } from './scene';
 
 let toolMesh: THREE.Mesh | null = null;
 let trailLine: THREE.Line | null = null;
+let trailMaterial: THREE.LineBasicMaterial | null = null;
 const trailPositions: number[] = [];
 const MAX_TRAIL = 5000;
+
+function getTrailMaterial(): THREE.LineBasicMaterial {
+  if (!trailMaterial) {
+    trailMaterial = new THREE.LineBasicMaterial({
+      color: 0xff6644,
+      transparent: true,
+      opacity: 0.8,
+    });
+  }
+  return trailMaterial;
+}
 
 export function updateToolPosition(x: number, y: number, z: number, isRunning: boolean): void {
   const scene = getScene();
@@ -41,12 +53,7 @@ export function updateToolPosition(x: number, y: number, z: number, isRunning: b
 
       const geom = new THREE.BufferGeometry();
       geom.setAttribute('position', new THREE.Float32BufferAttribute(trailPositions, 3));
-      const mat = new THREE.LineBasicMaterial({
-        color: 0xff6644,
-        transparent: true,
-        opacity: 0.8,
-      });
-      trailLine = new THREE.Line(geom, mat);
+      trailLine = new THREE.Line(geom, getTrailMaterial());
       scene.add(trailLine);
     }
   }
@@ -60,7 +67,19 @@ export function clearTrail(): void {
   if (trailLine) {
     scene.remove(trailLine);
     trailLine.geometry.dispose();
-    (trailLine.material as THREE.Material).dispose();
     trailLine = null;
+  }
+}
+
+export function disposeTool(): void {
+  if (toolMesh) {
+    toolMesh.geometry.dispose();
+    (toolMesh.material as THREE.Material).dispose();
+    toolMesh = null;
+  }
+  clearTrail();
+  if (trailMaterial) {
+    trailMaterial.dispose();
+    trailMaterial = null;
   }
 }

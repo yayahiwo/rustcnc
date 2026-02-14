@@ -4,8 +4,8 @@ use rustcnc_core::machine::MachineState;
 #[derive(Debug, Clone)]
 pub struct GrblStateMachine {
     pub state: SimState,
-    pub position: [f64; 3],
-    pub work_offset: [f64; 3],
+    pub position: [f64; 8],
+    pub work_offset: [f64; 8],
     pub feed_rate: f64,
     pub spindle_speed: f64,
     pub spindle_on: bool,
@@ -20,6 +20,7 @@ pub struct GrblStateMachine {
     pub units_mm: bool, // true = mm (G21), false = inches (G20)
     pub absolute_mode: bool, // true = G90, false = G91
     pub planner_buffer_used: u16,
+    pub axis_count: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,8 +52,8 @@ impl Default for GrblStateMachine {
     fn default() -> Self {
         Self {
             state: SimState::Idle,
-            position: [0.0; 3],
-            work_offset: [0.0; 3],
+            position: [0.0; 8],
+            work_offset: [0.0; 8],
             feed_rate: 0.0,
             spindle_speed: 0.0,
             spindle_on: false,
@@ -67,6 +68,7 @@ impl Default for GrblStateMachine {
             units_mm: true,
             absolute_mode: true,
             planner_buffer_used: 0,
+            axis_count: 3,
         }
     }
 }
@@ -79,10 +81,8 @@ impl GrblStateMachine {
     /// Generate a GRBL status report string
     pub fn status_report(&self) -> String {
         let state_str = self.state.to_grbl_string();
-        let mpos = format!(
-            "MPos:{:.3},{:.3},{:.3}",
-            self.position[0], self.position[1], self.position[2]
-        );
+        let mpos_vals: Vec<String> = self.position[..self.axis_count].iter().map(|v| format!("{:.3}", v)).collect();
+        let mpos = format!("MPos:{}", mpos_vals.join(","));
         let fs = format!("FS:{:.0},{:.0}", self.feed_rate, self.spindle_speed);
         let ov = format!(
             "Ov:{},{},{}",
@@ -99,12 +99,12 @@ impl GrblStateMachine {
     }
 
     /// Work position (machine position minus work offset)
-    pub fn work_position(&self) -> [f64; 3] {
-        [
-            self.position[0] - self.work_offset[0],
-            self.position[1] - self.work_offset[1],
-            self.position[2] - self.work_offset[2],
-        ]
+    pub fn work_position(&self) -> [f64; 8] {
+        let mut wp = [0.0; 8];
+        for i in 0..8 {
+            wp[i] = self.position[i] - self.work_offset[i];
+        }
+        wp
     }
 
     /// Apply a feed hold

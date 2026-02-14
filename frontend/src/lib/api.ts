@@ -25,8 +25,14 @@ export const api = {
     if (!res.ok) throw new Error(`Upload failed: ${res.statusText}`);
     return res.json();
   },
-  deleteFile: (id: string) => fetch(`${BASE}/files/${id}`, { method: 'DELETE' }),
-  loadFile: (id: string) => fetch(`${BASE}/files/${id}/load`, { method: 'POST' }),
+  deleteFile: async (id: string) => {
+    const res = await fetch(`${BASE}/files/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`Delete failed: ${res.statusText}`);
+  },
+  loadFile: async (id: string) => {
+    const res = await fetch(`${BASE}/files/${id}/load`, { method: 'POST' });
+    if (!res.ok) throw new Error(`Load failed: ${res.statusText}`);
+  },
 
   // Job control
   startJob: () => fetch(`${BASE}/job/start`, { method: 'POST' }),
