@@ -1,0 +1,30 @@
+.state {
+  text-align: center;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  padding: var(--gap-sm) 0;
+  letter-spacing: 0.1em;
+}
+
+.axes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--gap-sm) var(--gap-sm);
+}
+
+.coordToggle {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 2px 8px;
+  background: var(--bg-surface);
+  color: var(--accent-blue);
+  border-radius: var(--radius-sm);
+}
+
+.coordToggle:hover {
+  background: var(--bg-hover);
+}

@@ -1,0 +1,96 @@
+.body {
+  padding: var(--gap-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: var(--gap-xs);
+  max-width: 270px;
+  margin: 0 auto;
+}
+
+.jogBtn {
+  width: 56px;
+  height: 44px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jogBtn:hover:not(:disabled) {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.jogBtn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.zBtn {
+  background: var(--bg-surface);
+}
+
+.cancelBtn {
+  width: 56px;
+  height: 44px;
+  background: var(--bg-surface);
+  color: var(--accent-red);
+  font-size: var(--font-size-lg);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background: var(--accent-red);
+  color: white;
+}
+
+.presets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+}
+
+.presetLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.presetRow {
+  display: flex;
+  gap: 2px;
+}
+
+.presetBtn {
+  flex: 1;
+  height: 28px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-sm);
+}
+
+.presetBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.active {
+  background: var(--accent-blue) !important;
+  color: white !important;
+}

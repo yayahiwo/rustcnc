@@ -1,0 +1,30 @@
+# RustCNC Default Configuration
+
+[server]
+host = "0.0.0.0"
+port = 8080
+
+[serial]
+baud_rate = 115200
+timeout_ms = 100
+
+[streamer]
+buffer_size = 128
+status_poll_hz = 5
+# CPU core to pin streamer thread to (optional, Pi 4 recommended: 3)
+# pin_core = 3
+# Enable SCHED_FIFO real-time priority (Linux only, requires root/CAP_SYS_NICE)
+realtime_priority = false
+
+[logging]
+level = "info"
+# Log to file (optional)
+# file = "/var/log/rustcnc.log"
+
+[simulator]
+enabled = false
+# response_delay_ms = 5
+
+[files]
+storage_dir = "gcode_files"
+max_file_size_mb = 100

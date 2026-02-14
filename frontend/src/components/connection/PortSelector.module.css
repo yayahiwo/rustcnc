@@ -1,0 +1,39 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+}
+
+.row {
+  display: flex;
+  gap: var(--gap-xs);
+}
+
+.select {
+  flex: 1;
+  height: 30px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.refresh {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+}
+
+.refresh:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}

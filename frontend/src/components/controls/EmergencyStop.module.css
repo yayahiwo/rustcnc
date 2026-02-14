@@ -1,0 +1,21 @@
+.estop {
+  width: 80px;
+  height: 36px;
+  background: var(--accent-red);
+  color: white;
+  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  border-radius: var(--radius-md);
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+}
+
+.estop:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.5);
+}
+
+.estop:active {
+  transform: scale(0.97);
+}

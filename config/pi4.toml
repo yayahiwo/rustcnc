@@ -1,0 +1,33 @@
+# RustCNC Raspberry Pi 4 Production Configuration
+#
+# Prerequisites:
+#   1. Add isolcpus=3 to /boot/cmdline.txt (isolate core 3 for streamer)
+#   2. Mount /var/log as tmpfs to reduce SD card writes
+#   3. Mount rootfs with noatime
+#   4. Grant CAP_SYS_NICE: sudo setcap cap_sys_nice+ep ./rustcnc
+#      OR run as root
+
+[server]
+host = "0.0.0.0"
+port = 8080
+
+[serial]
+baud_rate = 115200
+timeout_ms = 50
+
+[streamer]
+buffer_size = 128
+status_poll_hz = 10
+pin_core = 3
+realtime_priority = true
+
+[logging]
+level = "info"
+file = "/var/log/rustcnc.log"
+
+[simulator]
+enabled = false
+
+[files]
+storage_dir = "/home/pi/gcode_files"
+max_file_size_mb = 200

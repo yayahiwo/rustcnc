@@ -1,0 +1,15 @@
+[package]
+name = "rustcnc-streamer"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rustcnc-core = { workspace = true }
+serialport = { workspace = true }
+crossbeam-channel = { workspace = true }
+tracing = { workspace = true }
+core_affinity = { workspace = true }
+libc = { workspace = true }
+parking_lot = { workspace = true }
+bytes = { workspace = true }
+anyhow = { workspace = true }

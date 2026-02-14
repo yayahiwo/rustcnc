@@ -1,0 +1,27 @@
+.dropzone {
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--gap-md);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dropzone:hover {
+  border-color: var(--accent-blue);
+  background: rgba(74, 158, 255, 0.05);
+}
+
+.active {
+  border-color: var(--accent-blue);
+  background: rgba(74, 158, 255, 0.1);
+}
+
+.label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.hidden {
+  display: none;
+}

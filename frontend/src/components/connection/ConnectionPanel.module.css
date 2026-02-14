@@ -1,0 +1,93 @@
+.panel {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header {
+  padding: var(--gap-sm) var(--gap-lg);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.body {
+  padding: 0 var(--gap-lg) var(--gap-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.baudRow {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  width: 36px;
+}
+
+.select {
+  flex: 1;
+  height: 30px;
+}
+
+.connectBtn {
+  width: 100%;
+  height: 32px;
+  background: var(--accent-blue);
+  color: white;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+}
+
+.connectBtn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.connected {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.connInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
+
+.firmware {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.disconnectBtn {
+  width: 100%;
+  height: 32px;
+  background: var(--bg-tertiary);
+  color: var(--accent-red);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+.disconnectBtn:hover {
+  background: var(--accent-red);
+  color: white;
+  border-color: var(--accent-red);
+}
