@@ -14,9 +14,7 @@ pub struct SystemInfo {
 }
 
 /// GET /api/system/info
-pub async fn system_info(
-    State(state): State<Arc<AppState>>,
-) -> Json<SystemInfo> {
+pub async fn system_info(State(state): State<Arc<AppState>>) -> Json<SystemInfo> {
     Json(SystemInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
         platform: std::env::consts::OS.to_string(),

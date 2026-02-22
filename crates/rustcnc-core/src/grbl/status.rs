@@ -51,13 +51,9 @@ pub fn parse_status_report(raw: &str) -> Option<StatusReport> {
         } else if let Some(value) = field.strip_prefix("Ln:") {
             report.line_number = value.parse().ok();
         } else if let Some(value) = field.strip_prefix("FS:") {
-            let parts: Vec<&str> = value.split(',').collect();
-            if parts.len() >= 1 {
-                report.feed_rate = parts[0].parse().ok();
-            }
-            if parts.len() >= 2 {
-                report.spindle_speed = parts[1].parse().ok();
-            }
+            let mut parts = value.split(',');
+            report.feed_rate = parts.next().and_then(|v| v.parse().ok());
+            report.spindle_speed = parts.next().and_then(|v| v.parse().ok());
         } else if let Some(value) = field.strip_prefix("F:") {
             report.feed_rate = value.parse().ok();
         } else if let Some(value) = field.strip_prefix("Pn:") {
@@ -234,8 +230,7 @@ mod tests {
 
     #[test]
     fn test_parse_with_buffer() {
-        let report =
-            parse_status_report("<Idle|MPos:0.000,0.000,0.000|Bf:15,120|FS:0,0>").unwrap();
+        let report = parse_status_report("<Idle|MPos:0.000,0.000,0.000|Bf:15,120|FS:0,0>").unwrap();
         let buf = report.buffer.unwrap();
         assert_eq!(buf.planner_blocks_available, 15);
         assert_eq!(buf.rx_bytes_available, 120);
@@ -243,8 +238,7 @@ mod tests {
 
     #[test]
     fn test_parse_input_pins() {
-        let report =
-            parse_status_report("<Idle|MPos:0.000,0.000,0.000|FS:0,0|Pn:XZP>").unwrap();
+        let report = parse_status_report("<Idle|MPos:0.000,0.000,0.000|FS:0,0|Pn:XZP>").unwrap();
         let pins = report.input_pins.unwrap();
         assert!(pins.limit_x);
         assert!(!pins.limit_y);
@@ -277,15 +271,13 @@ mod tests {
 
     #[test]
     fn test_parse_line_number() {
-        let report =
-            parse_status_report("<Run|MPos:0.000,0.000,0.000|FS:1000,0|Ln:1542>").unwrap();
+        let report = parse_status_report("<Run|MPos:0.000,0.000,0.000|FS:1000,0|Ln:1542>").unwrap();
         assert_eq!(report.line_number, Some(1542));
     }
 
     #[test]
     fn test_parse_with_extra_axes() {
-        let report =
-            parse_status_report("<Idle|MPos:1.0,2.0,3.0,4.0,5.0,6.0|FS:0,0>").unwrap();
+        let report = parse_status_report("<Idle|MPos:1.0,2.0,3.0,4.0,5.0,6.0|FS:0,0>").unwrap();
         let pos = report.machine_position.unwrap();
         assert_eq!(pos.a, Some(4.0));
         assert_eq!(pos.b, Some(5.0));

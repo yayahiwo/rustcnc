@@ -3,24 +3,19 @@ use serde::{Deserialize, Serialize};
 use crate::overrides::Overrides;
 
 /// Primary machine state reported by GRBL
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum MachineState {
+    #[default]
     Idle,
     Run,
-    Hold(u8),   // substate: 0=hold-complete, 1=hold-in-progress
+    Hold(u8), // substate: 0=hold-complete, 1=hold-in-progress
     Jog,
-    Alarm(u8),  // alarm code
-    Door(u8),   // substate: 0=closed-holding, 1=closed-resuming, 2=opened, 3=closing
+    Alarm(u8), // alarm code
+    Door(u8),  // substate: 0=closed-holding, 1=closed-resuming, 2=opened, 3=closing
     Check,
     Home,
     Sleep,
     Tool, // grblHAL: tool change pending
-}
-
-impl Default for MachineState {
-    fn default() -> Self {
-        Self::Idle
-    }
 }
 
 impl MachineState {
@@ -109,9 +104,8 @@ impl Position {
 
     /// Distance to another position (all configured axes)
     pub fn distance_to(&self, other: &Position) -> f64 {
-        let mut sum = (other.x - self.x).powi(2)
-            + (other.y - self.y).powi(2)
-            + (other.z - self.z).powi(2);
+        let mut sum =
+            (other.x - self.x).powi(2) + (other.y - self.y).powi(2) + (other.z - self.z).powi(2);
         if let (Some(a1), Some(a2)) = (self.a, other.a) {
             sum += (a2 - a1).powi(2);
         }
@@ -183,17 +177,12 @@ pub struct StatusReport {
 }
 
 /// Firmware type detected from the controller
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum FirmwareType {
     Grbl,
     GrblHal,
+    #[default]
     Unknown,
-}
-
-impl Default for FirmwareType {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 /// Connection info

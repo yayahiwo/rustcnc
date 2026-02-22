@@ -39,7 +39,12 @@
   border-radius: var(--radius-sm);
 }
 
-.zero:hover {
+.zero:hover:not(:disabled) {
   background: var(--accent-blue);
   color: var(--bg-primary);
+}
+
+.zero:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }

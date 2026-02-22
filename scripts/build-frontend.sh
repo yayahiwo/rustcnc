@@ -15,12 +15,16 @@ cd "$FRONTEND_DIR"
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then
     echo "  Installing npm dependencies..."
-    npm install
+    if [ -f "package-lock.json" ]; then
+        npm ci
+    else
+        npm install
+    fi
 fi
 
 # Build
-echo "  Running Vite build..."
-npx vite build
+echo "  Running build..."
+npm run build
 
 echo "==> Frontend built: $FRONTEND_DIR/dist/"
 echo "    $(du -sh dist/ | cut -f1) total"

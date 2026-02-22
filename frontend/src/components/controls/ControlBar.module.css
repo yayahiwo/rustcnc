@@ -19,6 +19,14 @@
   justify-content: center;
 }
 
+.logo {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--accent-blue);
+  font-family: var(--font-mono);
+  margin-right: var(--gap-sm);
+}
+
 .btn {
   height: 36px;
   padding: 0 20px;
@@ -28,44 +36,6 @@
   display: flex;
   align-items: center;
   gap: var(--gap-xs);
-}
-
-.start {
-  background: var(--accent-green);
-  color: #000;
-}
-
-.start:hover:not(:disabled) {
-  filter: brightness(1.1);
-}
-
-.pause {
-  background: var(--accent-yellow);
-  color: #000;
-}
-
-.pause:hover {
-  filter: brightness(1.1);
-}
-
-.resume {
-  background: var(--accent-blue);
-  color: white;
-}
-
-.resume:hover {
-  filter: brightness(1.1);
-}
-
-.stop {
-  background: var(--bg-tertiary);
-  color: var(--accent-red);
-  border: 1px solid var(--accent-red);
-}
-
-.stop:hover {
-  background: var(--accent-red);
-  color: white;
 }
 
 .home {
@@ -85,4 +55,60 @@
 
 .unlock:hover {
   filter: brightness(1.1);
+}
+
+.reset {
+  background: var(--accent-orange);
+  color: #000;
+}
+
+.reset:hover {
+  filter: brightness(1.1);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-md);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.statusState {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.stateIdle { color: var(--state-idle, #34d399); }
+.stateRun { color: var(--state-run, #4a9eff); }
+.stateHold { color: var(--state-hold, #f59e0b); }
+.stateAlarm { color: var(--state-alarm, #ef4444); }
+.stateHome { color: var(--state-home, #a78bfa); }
+.stateJog { color: var(--state-jog, #38bdf8); }
+
+.statusDisconnected {
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.statusItem {
+  color: var(--text-secondary);
+}
+
+.systemAlert {
+  color: #f1c40f;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  animation: flashAlert 1s ease-in-out infinite;
+}
+
+@keyframes flashAlert {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }

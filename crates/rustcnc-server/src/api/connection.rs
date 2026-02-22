@@ -4,6 +4,8 @@ use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 
+use rustcnc_streamer::streamer::StreamerCommand;
+
 use crate::state::AppState;
 
 #[derive(Deserialize)]
@@ -32,14 +34,24 @@ pub struct PortInfoResponse {
 /// connect command to the streamer thread so it can open a new serial port
 /// at runtime, or restarting the streamer with the new port configuration.
 pub async fn connect(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(req): Json<ConnectRequest>,
 ) -> Result<Json<ConnectResponse>, StatusCode> {
-    warn!(
-        "Connect endpoint not yet implemented - port: {} baud: {:?}",
-        req.port, req.baud_rate
-    );
-    Err(StatusCode::NOT_IMPLEMENTED)
+    let baud_rate = req.baud_rate.unwrap_or(state.config.serial.baud_rate);
+    let port = req.port.clone();
+    let _ = state.streamer_cmd_tx.send(StreamerCommand::Connect {
+        port: port.clone(),
+        baud_rate,
+    });
+    warn!("Connect requested via REST: {} @ {}", port, baud_rate);
+    Ok(Json(ConnectResponse {
+        connected: state
+            .machine_state
+            .connected
+            .load(std::sync::atomic::Ordering::Acquire),
+        port,
+        message: "Connect requested".into(),
+    }))
 }
 
 /// POST /api/disconnect
@@ -48,16 +60,15 @@ pub async fn connect(
 /// disconnect command to the streamer thread so it can close the current
 /// serial port gracefully.
 pub async fn disconnect(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    warn!("Disconnect endpoint not yet implemented");
-    Err(StatusCode::NOT_IMPLEMENTED)
+    let _ = state.streamer_cmd_tx.send(StreamerCommand::Disconnect);
+    warn!("Disconnect requested via REST");
+    Ok(Json(serde_json::json!({ "ok": true })))
 }
 
 /// GET /api/ports
-pub async fn list_ports(
-    State(_state): State<Arc<AppState>>,
-) -> Json<Vec<PortInfoResponse>> {
+pub async fn list_ports(State(_state): State<Arc<AppState>>) -> Json<Vec<PortInfoResponse>> {
     let ports = rustcnc_streamer::serial::list_ports();
     let response: Vec<PortInfoResponse> = ports
         .iter()

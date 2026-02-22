@@ -4,7 +4,6 @@ members = [
     "crates/rustcnc-core",
     "crates/rustcnc-streamer",
     "crates/rustcnc-planner",
-    "crates/rustcnc-simulator",
     "crates/rustcnc-server",
 ]
 
@@ -19,15 +18,16 @@ rust-version = "1.75"
 tokio = { version = "1.43", features = ["full"] }
 # Web framework
 axum = { version = "0.8", features = ["ws"] }
-axum-extra = { version = "0.10", features = ["typed-header"] }
+axum-extra = { version = "0.10", features = ["typed-header", "cookie"] }
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 # Serial port
-serialport = "4.7"
+serialport = { version = "4.7", default-features = false }
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
 # Error handling
 thiserror = "2.0"
 anyhow = "1.0"
@@ -50,19 +50,20 @@ regex = "1.11"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 futures-util = "0.3"
 mime_guess = "2.0"
+sha2 = "0.10.9"
+base64 = "0.22.1"
 
 # Internal crates
 rustcnc-core = { path = "crates/rustcnc-core" }
 rustcnc-streamer = { path = "crates/rustcnc-streamer" }
 rustcnc-planner = { path = "crates/rustcnc-planner" }
-rustcnc-simulator = { path = "crates/rustcnc-simulator" }
 
 [profile.release]
 opt-level = 3
 lto = "fat"
 codegen-units = 1
 strip = true
-panic = "abort"
+panic = "unwind"
 
 [profile.release.package.rustcnc-streamer]
 opt-level = 3

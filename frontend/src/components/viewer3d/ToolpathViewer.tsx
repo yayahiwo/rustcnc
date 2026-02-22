@@ -1,19 +1,67 @@
 import { Component, onMount, onCleanup, createEffect, createSignal } from 'solid-js';
-import { gcodeFile, workPos, machineState } from '../../lib/store';
+import { gcodeFile, workPos, machineState, jobProgress, pickedLineNum } from '../../lib/store';
 import { createScene, disposeScene, zoomCamera, fitToScene, getControls, setCameraView } from './scene';
 import type { ViewPreset } from './scene';
-import { updateToolpath } from './toolpath';
+import { updateToolpath, updateToolpathProgress, resetToolpathProgress, pickToolpathLine, highlightToolpathLine } from './toolpath';
 import { updateToolPosition } from './tool';
 import styles from './ToolpathViewer.module.css';
+
+const HEIGHT_KEY = 'rustcnc-viewer-height';
 
 type CameraMode = 'orbit' | 'pan';
 
 const ToolpathViewer: Component = () => {
   let containerRef: HTMLDivElement | undefined;
+  let viewerRef: HTMLDivElement | undefined;
   let cleanupScene: (() => void) | null = null;
   const [mode, setMode] = createSignal<CameraMode>('orbit');
   const [view, setView] = createSignal<ViewPreset>('3d');
   const [tiltLocked, setTiltLocked] = createSignal(false);
+  const [pickMode, setPickMode] = createSignal(false);
+  let pointerDownPos: { x: number; y: number } | null = null;
+
+  // ── Resize logic ──
+  const saved = localStorage.getItem(HEIGHT_KEY);
+  const [customHeight, setCustomHeight] = createSignal<number | null>(
+    saved ? Number(saved) : null,
+  );
+
+  // Apply custom height to parent Widget wrapper
+  createEffect(() => {
+    const h = customHeight();
+    const el = viewerRef?.parentElement; // the Widget wrapper
+    if (!el) return;
+    if (h !== null) {
+      el.style.flex = 'none';
+      el.style.height = `${h}px`;
+    } else {
+      el.style.flex = '';
+      el.style.height = '';
+    }
+  });
+
+  const handleResizeStart = (e: MouseEvent) => {
+    e.preventDefault();
+    const widgetEl = viewerRef?.parentElement;
+    if (!widgetEl) return;
+    const startY = e.clientY;
+    const startH = widgetEl.getBoundingClientRect().height;
+
+    const onMove = (ev: MouseEvent) => {
+      const h = Math.max(150, startH + (ev.clientY - startY));
+      setCustomHeight(h);
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      const h = customHeight();
+      if (h !== null) {
+        localStorage.setItem(HEIGHT_KEY, String(Math.round(h)));
+      }
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
 
   const toggleTiltLock = () => {
     const ctrl = getControls();
@@ -28,6 +76,21 @@ const ToolpathViewer: Component = () => {
       ctrl.minPolarAngle = 0;
       ctrl.maxPolarAngle = Math.PI;
     }
+  };
+
+  const handlePointerDown = (e: PointerEvent) => {
+    if (!pickMode()) return;
+    pointerDownPos = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleCanvasClick = (e: MouseEvent) => {
+    if (!pickMode()) return;
+    if (pointerDownPos) {
+      const dx = e.clientX - pointerDownPos.x;
+      const dy = e.clientY - pointerDownPos.y;
+      if (dx * dx + dy * dy > 25) return; // 5px drag threshold
+    }
+    pickToolpathLine(e);
   };
 
   const switchMode = (m: CameraMode) => {
@@ -68,11 +131,39 @@ const ToolpathViewer: Component = () => {
     updateToolPosition(pos.x, pos.y, pos.z, state === 'Run');
   });
 
+  // Update toolpath progress coloring (gray out completed lines)
+  createEffect(() => {
+    const progress = jobProgress();
+    if (!progress) return;
+    if (progress.state === 'Running' || progress.state === 'Paused' || progress.state === 'Completed') {
+      updateToolpathProgress(progress.current_line);
+    } else if (progress.state === 'Idle' || progress.state === 'Cancelled') {
+      resetToolpathProgress();
+    }
+  });
+
+  // Highlight picked line in 3D view (bright yellow)
+  createEffect(() => {
+    highlightToolpathLine(pickedLineNum());
+  });
+
   return (
-    <div class={'panel ' + styles.viewer}>
+    <div class={'panel ' + styles.viewer} ref={viewerRef}>
       <div class="panel-header">3D View</div>
       <div class={styles.canvasWrap}>
-        <div class={styles.canvas} ref={containerRef} />
+        <div
+          class={styles.canvas + (pickMode() ? ' ' + styles.pickCursor : '')}
+          ref={containerRef}
+          onPointerDown={handlePointerDown}
+          onClick={handleCanvasClick}
+        />
+        <div class={styles.resizeHandle} onMouseDown={handleResizeStart} title="Drag to resize height">
+          <svg viewBox="0 0 12 6" fill="none" stroke="currentColor" stroke-width="1">
+            <line x1="0" y1="1" x2="12" y2="1" />
+            <line x1="0" y1="3" x2="12" y2="3" />
+            <line x1="0" y1="5" x2="12" y2="5" />
+          </svg>
+        </div>
         <div class={styles.toolbar}>
           <button
             class={styles.tbBtn}
@@ -133,6 +224,19 @@ const ToolpathViewer: Component = () => {
                 ? <path d="M7 10V7a3 3 0 0 1 6 0v3" />
                 : <path d="M7 10V7a3 3 0 0 1 6 0" />
               }
+            </svg>
+          </button>
+          <button
+            class={styles.tbBtn + (pickMode() ? ' ' + styles.tbBtnActive : '')}
+            onClick={() => setPickMode(!pickMode())}
+            title={pickMode() ? 'Disable line picker' : 'Pick G-code line'}
+          >
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="10" cy="10" r="7" />
+              <line x1="10" y1="2" x2="10" y2="6" />
+              <line x1="10" y1="14" x2="10" y2="18" />
+              <line x1="2" y1="10" x2="6" y2="10" />
+              <line x1="14" y1="10" x2="18" y2="10" />
             </svg>
           </button>
           <div class={styles.tbSep} />

@@ -1,13 +1,26 @@
 .console {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 150px;
+  min-height: 100px;
+  flex: none;
+}
+
+.resizeHandle {
+  height: 5px;
+  cursor: ns-resize;
+  flex-shrink: 0;
+}
+
+.resizeHandle:hover,
+.resizeHandle:active {
+  background: var(--accent-blue);
+  opacity: 0.5;
 }
 
 .output {
   flex: 1;
   overflow-y: auto;
+  overflow-x: auto;
   padding: var(--gap-sm);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
@@ -29,8 +42,7 @@
 }
 
 .text {
-  white-space: pre-wrap;
-  word-break: break-all;
+  white-space: nowrap;
 }
 
 .sent {
@@ -39,6 +51,10 @@
 
 .received {
   color: var(--text-primary);
+}
+
+.settingDesc {
+  opacity: 0.5;
 }
 
 .system {
@@ -62,6 +78,20 @@
 
 .input:focus {
   border-color: transparent;
+}
+
+.clearBtn {
+  padding: 0 var(--gap-md);
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  border-left: 1px solid var(--border-color);
+}
+
+.clearBtn:hover {
+  background: var(--accent-red, #e74c3c);
+  color: white;
 }
 
 .sendBtn {

@@ -1,29 +1,19 @@
 use serde::{Deserialize, Serialize};
 
 /// Unit system for coordinates and distances
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum UnitSystem {
-    Metric,     // G21 - millimeters
-    Imperial,   // G20 - inches
-}
-
-impl Default for UnitSystem {
-    fn default() -> Self {
-        Self::Metric
-    }
+    #[default]
+    Metric, // G21 - millimeters
+    Imperial, // G20 - inches
 }
 
 /// Distance mode
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum DistanceMode {
-    Absolute,      // G90
-    Incremental,   // G91
-}
-
-impl Default for DistanceMode {
-    fn default() -> Self {
-        Self::Absolute
-    }
+    #[default]
+    Absolute, // G90
+    Incremental, // G91
 }
 
 /// Convert inches to millimeters

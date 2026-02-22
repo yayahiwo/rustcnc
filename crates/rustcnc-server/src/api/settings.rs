@@ -7,9 +7,7 @@ use rustcnc_streamer::streamer::StreamerCommand;
 use crate::state::AppState;
 
 /// GET /api/settings
-pub async fn get_settings(
-    State(state): State<Arc<AppState>>,
-) -> Json<serde_json::Value> {
+pub async fn get_settings(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::to_value(&state.config).unwrap_or_default())
 }
 
@@ -25,9 +23,7 @@ pub async fn update_settings(
 
 /// GET /api/settings/grbl
 /// Request GRBL settings from the controller ($$)
-pub async fn get_grbl_settings(
-    State(state): State<Arc<AppState>>,
-) -> StatusCode {
+pub async fn get_grbl_settings(State(state): State<Arc<AppState>>) -> StatusCode {
     let _ = state
         .streamer_cmd_tx
         .send(StreamerCommand::RawCommand("$$".into()));

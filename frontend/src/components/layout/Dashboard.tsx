@@ -1,6 +1,5 @@
 import { Component, For, Index, createSignal, createMemo } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
-import Sidebar from './Sidebar';
 import StatusBar from './StatusBar';
 import Widget from './Widget';
 import DRO from '../dro/DRO';
@@ -10,8 +9,10 @@ import Console from '../console/Console';
 import GCodeViewer from '../gcode/GCodeViewer';
 import ToolpathViewer from '../viewer3d/ToolpathViewer';
 import JobProgressPanel from '../file/JobProgress';
-import FileList from '../file/FileList';
+import ConnectionPanel from '../connection/ConnectionPanel';
 import ControlBar from '../controls/ControlBar';
+import MacroPanel from '../macros/MacroPanel';
+import SystemInfoPanel from '../systeminfo/SystemInfoPanel';
 import { layout, moveWidget } from '../../lib/widgetStore';
 import type { WidgetId } from '../../lib/widgetStore';
 import styles from './Dashboard.module.css';
@@ -25,8 +26,10 @@ const WIDGET_COMPONENTS: Record<WidgetId, Component> = {
   'toolpath-viewer': ToolpathViewer,
   'gcode-viewer': GCodeViewer,
   'job-progress': JobProgressPanel,
-  'file-list': FileList,
   'console': Console,
+  'connection': ConnectionPanel,
+  'macros': MacroPanel,
+  'system-info': SystemInfoPanel,
 };
 
 // ── Drop handling ──
@@ -105,7 +108,6 @@ const Dashboard: Component = () => {
 
   return (
     <div class={styles.dashboard}>
-      <Sidebar />
       <div class={styles.main}>
         <ControlBar />
         <div

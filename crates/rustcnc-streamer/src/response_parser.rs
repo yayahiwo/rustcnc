@@ -62,7 +62,10 @@ impl ResponseParser {
                 }
             } else {
                 if self.buffer.len() >= MAX_LINE_LENGTH {
-                    warn!("Response line exceeded {} bytes, discarding", MAX_LINE_LENGTH);
+                    warn!(
+                        "Response line exceeded {} bytes, discarding",
+                        MAX_LINE_LENGTH
+                    );
                     self.buffer.clear();
                 }
                 self.buffer.push(byte);
@@ -108,8 +111,7 @@ impl ResponseParser {
         }
 
         // Welcome message
-        if line.starts_with("Grbl") || line.starts_with("grblHAL") || line.starts_with("GrblHAL")
-        {
+        if line.starts_with("Grbl") || line.starts_with("grblHAL") || line.starts_with("GrblHAL") {
             return Some(GrblResponse::Welcome(line.to_string()));
         }
 
@@ -141,8 +143,8 @@ impl ResponseParser {
         }
 
         // Startup line execution: >line:ok
-        if line.starts_with('>') {
-            return Some(GrblResponse::StartupLine(line[1..].to_string()));
+        if let Some(stripped) = line.strip_prefix('>') {
+            return Some(GrblResponse::StartupLine(stripped.to_string()));
         }
 
         // Generic feedback: [...]
@@ -286,11 +288,7 @@ mod tests {
         let responses = parser.feed(b"ok\nok\nerror:22\n");
         assert_eq!(
             responses,
-            vec![
-                GrblResponse::Ok,
-                GrblResponse::Ok,
-                GrblResponse::Error(22)
-            ]
+            vec![GrblResponse::Ok, GrblResponse::Ok, GrblResponse::Error(22)]
         );
     }
 

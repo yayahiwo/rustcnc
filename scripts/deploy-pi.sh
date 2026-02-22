@@ -5,7 +5,7 @@ set -euo pipefail
 # Usage: ./deploy-pi.sh [user@host] [remote-path]
 #
 # Examples:
-#   ./deploy-pi.sh pi@192.168.1.100
+#   ./deploy-pi.sh pi@<pi-ip>
 #   ./deploy-pi.sh pi@cnc.local /opt/rustcnc
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,7 +14,7 @@ TARGET="aarch64-unknown-linux-gnu"
 BINARY="$PROJECT_ROOT/target/$TARGET/release/rustcnc"
 
 PI_HOST="${1:-pi@raspberrypi.local}"
-REMOTE_DIR="${2:-/home/pi/rustcnc}"
+REMOTE_DIR="${2:-~/rustcnc}"
 
 if [ ! -f "$BINARY" ]; then
     echo "Binary not found at $BINARY"
@@ -30,13 +30,14 @@ ssh "$PI_HOST" "mkdir -p $REMOTE_DIR"
 # Copy binary
 echo "  Copying binary..."
 scp "$BINARY" "$PI_HOST:$REMOTE_DIR/rustcnc"
+ssh "$PI_HOST" "chmod +x $REMOTE_DIR/rustcnc"
 
 # Copy config
 echo "  Copying config..."
 scp "$PROJECT_ROOT/config/pi4.toml" "$PI_HOST:$REMOTE_DIR/config.toml"
 
-# Create gcode directory
-ssh "$PI_HOST" "mkdir -p /home/pi/gcode_files"
+# Create upload dir (pi4.toml defaults to ./gcode_files relative to WorkingDirectory)
+ssh "$PI_HOST" "mkdir -p $REMOTE_DIR/gcode_files"
 
 echo "==> Deployed successfully!"
 echo ""

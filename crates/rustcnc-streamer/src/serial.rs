@@ -12,6 +12,18 @@ pub trait SerialPort: Read + Write + Send {
     fn write_rt_command(&mut self, cmd: u8) -> std::io::Result<()> {
         self.write_all(&[cmd])
     }
+
+    /// Clear the OS serial output buffer. Called before soft reset to prevent
+    /// stale bytes from corrupting the post-reset command stream.
+    fn clear_output_buffer(&mut self) -> std::io::Result<()> {
+        Ok(()) // no-op by default (simulator)
+    }
+
+    /// Clear the OS serial input buffer. Called after soft reset to discard
+    /// stale response bytes from the previous command stream.
+    fn clear_input_buffer(&mut self) -> std::io::Result<()> {
+        Ok(()) // no-op by default (simulator)
+    }
 }
 
 /// Wrapper around the `serialport` crate for hardware serial ports
@@ -51,17 +63,27 @@ impl SerialPort for HardwareSerialPort {
     fn set_timeout(&mut self, timeout: Duration) -> std::io::Result<()> {
         self.inner
             .set_timeout(timeout)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+            .map_err(std::io::Error::other)
     }
 
     fn bytes_to_read(&self) -> std::io::Result<u32> {
-        self.inner
-            .bytes_to_read()
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+        self.inner.bytes_to_read().map_err(std::io::Error::other)
     }
 
     fn name(&self) -> Option<String> {
         self.inner.name()
+    }
+
+    fn clear_output_buffer(&mut self) -> std::io::Result<()> {
+        self.inner
+            .clear(serialport::ClearBuffer::Output)
+            .map_err(std::io::Error::other)
+    }
+
+    fn clear_input_buffer(&mut self) -> std::io::Result<()> {
+        self.inner
+            .clear(serialport::ClearBuffer::Input)
+            .map_err(std::io::Error::other)
     }
 }
 

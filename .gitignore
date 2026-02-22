@@ -1,6 +1,5 @@
 # Rust
 /target/
-Cargo.lock
 
 # Frontend
 frontend/node_modules/
@@ -10,6 +9,7 @@ frontend/.vite/
 # IDE
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 *~
@@ -24,6 +24,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Release artifacts
+dist/
 
 # G-code uploads
 gcode_files/

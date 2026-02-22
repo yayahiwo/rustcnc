@@ -12,10 +12,5 @@ export function createGrid(): THREE.Group {
   grid.rotation.x = Math.PI / 2;
   group.add(grid);
 
-  // Smaller 10mm grid overlay in the center
-  const fineGrid = new THREE.GridHelper(100, 100, 0x222233, 0x15152a);
-  fineGrid.rotation.x = Math.PI / 2;
-  group.add(fineGrid);
-
   return group;
 }

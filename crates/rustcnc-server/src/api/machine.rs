@@ -11,18 +11,45 @@ use crate::state::AppState;
 
 /// POST /api/job/start
 pub async fn start_job(State(state): State<Arc<AppState>>) -> StatusCode {
-    let _ = state.planner_tx.send(PlannerCommand::StartJob).await;
+    if !state
+        .machine_state
+        .connected
+        .load(std::sync::atomic::Ordering::Acquire)
+    {
+        return StatusCode::CONFLICT;
+    }
+    let _ = state
+        .planner_tx
+        .send(PlannerCommand::StartJob {
+            start_line: None,
+            stop_line: None,
+        })
+        .await;
     StatusCode::OK
 }
 
 /// POST /api/job/pause
 pub async fn pause_job(State(state): State<Arc<AppState>>) -> StatusCode {
+    if !state
+        .machine_state
+        .connected
+        .load(std::sync::atomic::Ordering::Acquire)
+    {
+        return StatusCode::CONFLICT;
+    }
     let _ = state.planner_tx.send(PlannerCommand::PauseJob).await;
     StatusCode::OK
 }
 
 /// POST /api/job/resume
 pub async fn resume_job(State(state): State<Arc<AppState>>) -> StatusCode {
+    if !state
+        .machine_state
+        .connected
+        .load(std::sync::atomic::Ordering::Acquire)
+    {
+        return StatusCode::CONFLICT;
+    }
     let _ = state.planner_tx.send(PlannerCommand::ResumeJob).await;
     StatusCode::OK
 }
@@ -35,6 +62,13 @@ pub async fn cancel_job(State(state): State<Arc<AppState>>) -> StatusCode {
 
 /// POST /api/machine/home
 pub async fn home(State(state): State<Arc<AppState>>) -> StatusCode {
+    if !state
+        .machine_state
+        .connected
+        .load(std::sync::atomic::Ordering::Acquire)
+    {
+        return StatusCode::CONFLICT;
+    }
     let _ = state
         .streamer_cmd_tx
         .send(StreamerCommand::RawCommand("$H".into()));
@@ -43,6 +77,13 @@ pub async fn home(State(state): State<Arc<AppState>>) -> StatusCode {
 
 /// POST /api/machine/unlock
 pub async fn unlock(State(state): State<Arc<AppState>>) -> StatusCode {
+    if !state
+        .machine_state
+        .connected
+        .load(std::sync::atomic::Ordering::Acquire)
+    {
+        return StatusCode::CONFLICT;
+    }
     let _ = state
         .streamer_cmd_tx
         .send(StreamerCommand::RawCommand("$X".into()));
@@ -51,6 +92,13 @@ pub async fn unlock(State(state): State<Arc<AppState>>) -> StatusCode {
 
 /// POST /api/machine/reset
 pub async fn reset(State(state): State<Arc<AppState>>) -> StatusCode {
+    if !state
+        .machine_state
+        .connected
+        .load(std::sync::atomic::Ordering::Acquire)
+    {
+        return StatusCode::CONFLICT;
+    }
     let _ = state
         .streamer_cmd_tx
         .send(StreamerCommand::Realtime(RealtimeCommand::SoftReset));
@@ -67,6 +115,13 @@ pub async fn send_command(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CommandRequest>,
 ) -> StatusCode {
+    if !state
+        .machine_state
+        .connected
+        .load(std::sync::atomic::Ordering::Acquire)
+    {
+        return StatusCode::CONFLICT;
+    }
     let _ = state
         .planner_tx
         .send(PlannerCommand::SendCommand(req.command))

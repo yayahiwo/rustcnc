@@ -23,6 +23,40 @@
   display: block;
 }
 
+.pickCursor,
+.pickCursor canvas {
+  cursor: crosshair;
+}
+
+/* ── Resize handle ── */
+
+.resizeHandle {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 28px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  color: var(--text-muted);
+  opacity: 0.4;
+  z-index: 3;
+  border-radius: 0 var(--radius-sm) 0 0;
+  transition: opacity 0.15s;
+}
+
+.resizeHandle:hover {
+  opacity: 0.9;
+  background: rgba(15, 17, 23, 0.6);
+}
+
+.resizeHandle svg {
+  width: 12px;
+  height: 6px;
+}
+
 /* ── Toolbar ── */
 
 .toolbar {

@@ -1,20 +1,15 @@
 use serde::{Deserialize, Serialize};
 
 /// Job lifecycle state
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum JobState {
+    #[default]
     Idle,
     Running,
     Paused,
     Completed,
     Error,
     Cancelled,
-}
-
-impl Default for JobState {
-    fn default() -> Self {
-        Self::Idle
-    }
 }
 
 impl JobState {

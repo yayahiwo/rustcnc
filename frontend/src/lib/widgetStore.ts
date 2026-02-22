@@ -9,8 +9,10 @@ export type WidgetId =
   | 'toolpath-viewer'
   | 'gcode-viewer'
   | 'job-progress'
-  | 'file-list'
-  | 'console';
+  | 'console'
+  | 'connection'
+  | 'macros'
+  | 'system-info';
 
 export interface LayoutState {
   columnCount: number;       // 1–4
@@ -48,14 +50,16 @@ export interface WidgetMeta {
 }
 
 export const WIDGET_REGISTRY: WidgetMeta[] = [
+  { id: 'connection', defaultColumn: 0 },
   { id: 'dro', defaultColumn: 0 },
   { id: 'jogpad', defaultColumn: 0 },
   { id: 'overrides', defaultColumn: 0 },
   { id: 'toolpath-viewer', defaultColumn: 1, flex: 2 },
   { id: 'gcode-viewer', defaultColumn: 1, flex: 1 },
   { id: 'job-progress', defaultColumn: 2 },
-  { id: 'file-list', defaultColumn: 2 },
   { id: 'console', defaultColumn: 2, flex: 1 },
+  { id: 'macros', defaultColumn: 2 },
+  { id: 'system-info', defaultColumn: 2 },
 ];
 
 const KNOWN_IDS = new Set<string>(WIDGET_REGISTRY.map((w) => w.id));
@@ -73,9 +77,9 @@ const DEFAULT_LAYOUT: LayoutState = {
   columnCount: 3,
   columnWidths: [3, 6, 3],
   columns: [
-    ['dro', 'jogpad', 'overrides'],
+    ['connection', 'dro', 'jogpad', 'overrides'],
     ['toolpath-viewer', 'gcode-viewer'],
-    ['job-progress', 'file-list', 'console'],
+    ['job-progress', 'console'],
   ],
   collapsed: {},
   axisCount: 3,

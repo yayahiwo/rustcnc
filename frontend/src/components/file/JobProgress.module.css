@@ -1,5 +1,5 @@
 .body {
-  padding: var(--gap-md);
+  padding: var(--gap-sm) var(--gap-md) var(--gap-md);
   display: flex;
   flex-direction: column;
   gap: var(--gap-sm);
@@ -10,6 +10,102 @@
   font-size: var(--font-size-xs);
   font-weight: 700;
   text-transform: uppercase;
+}
+
+/* ── File list ── */
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gap-xs) var(--gap-sm);
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+}
+
+.file:hover {
+  background: var(--bg-hover);
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fileName {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileMeta {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.fileActions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.loadBtn {
+  height: 24px;
+  padding: 0 8px;
+  background: var(--bg-tertiary);
+  color: var(--accent-blue);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+}
+
+.loadBtn:hover {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.deleteBtn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-sm);
+}
+
+.deleteBtn:hover {
+  background: var(--accent-red);
+  color: white;
+}
+
+.empty {
+  text-align: center;
+  padding: var(--gap-sm);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* ── Job progress ── */
+
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  border-top: 1px solid var(--border-color);
+  padding-top: var(--gap-sm);
 }
 
 .filename {
@@ -51,6 +147,15 @@
   text-align: right;
 }
 
+.countdown {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-lg, 16px);
+  font-weight: 700;
+  color: var(--accent-blue);
+  text-align: center;
+  padding: 4px 0;
+}
+
 .stats {
   display: flex;
   flex-direction: column;
@@ -72,4 +177,214 @@
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
+}
+
+/* ── Line range ── */
+
+.lineRange {
+  display: flex;
+  gap: var(--gap-sm);
+  align-items: center;
+}
+
+.lineLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.lineInput {
+  width: 70px;
+  height: 28px;
+  padding: 0 6px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.lineInput::placeholder {
+  color: var(--text-muted);
+}
+
+.lineInput::-webkit-inner-spin-button,
+.lineInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.lineInput {
+  -moz-appearance: textfield;
+}
+
+/* ── Run controls ── */
+
+.actions {
+  display: flex;
+  gap: var(--gap-sm);
+  margin-top: var(--gap-xs);
+}
+
+.actionBtn {
+  flex: 1;
+  height: 32px;
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.actionBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btnIcon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.run {
+  background: var(--accent-green);
+  color: #000;
+}
+
+.run:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.run:disabled {
+  opacity: 0.4;
+}
+
+.pause {
+  background: var(--accent-yellow);
+  color: #000;
+}
+
+.pause:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.resume {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.resume:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.cancel {
+  background: var(--bg-tertiary);
+  color: var(--accent-red);
+  border: 1px solid var(--accent-red);
+}
+
+.cancel:hover:not(:disabled) {
+  background: var(--accent-red);
+  color: white;
+}
+
+/* ── Scheduled pause ── */
+
+.schedulePauseWrap {
+  position: relative;
+}
+
+.schedulePauseBtn {
+  width: 100%;
+  height: 32px;
+  background: var(--bg-surface);
+  color: var(--accent-yellow);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.schedulePauseBtn:hover {
+  background: var(--bg-hover);
+}
+
+.pauseMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  padding: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.pauseMenuItem {
+  padding: 6px 8px;
+  background: none;
+  color: var(--text-primary);
+  font-size: var(--font-size-xs);
+  text-align: left;
+  border-radius: var(--radius-sm);
+}
+
+.pauseMenuItem:hover {
+  background: var(--bg-hover);
+}
+
+.zDepthRow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.zInput {
+  width: 60px;
+  padding: 4px 6px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.zInput::placeholder {
+  color: var(--text-muted);
+}
+
+.pauseIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-left: 3px solid var(--accent-yellow);
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+}
+
+.pauseIndicatorLabel {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--accent-yellow);
+}
+
+.cancelScheduleBtn {
+  padding: 2px 8px;
+  font-size: var(--font-size-xs);
+  background: none;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+}
+
+.cancelScheduleBtn:hover {
+  color: var(--accent-red);
+  background: var(--bg-hover);
 }

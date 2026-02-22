@@ -12,7 +12,8 @@ use tracing::{debug, info, warn};
 
 use rustcnc_core::grbl::realtime::RealtimeCommand;
 use rustcnc_core::ws_protocol::{
-    ClientMessage, ConnectionState, FullStateSync, ServerMessage,
+    ClientMessage, ConnectionState, ConsoleDirection, ConsoleEntry, ErrorNotification,
+    FullStateSync, ServerMessage,
 };
 use rustcnc_planner::planner::PlannerCommand;
 use rustcnc_streamer::streamer::StreamerCommand;
@@ -37,6 +38,22 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     let sync_msg = build_state_sync(&state);
     if let Ok(json) = codec::encode_server_message(&sync_msg) {
         let _ = ws_tx.send(Message::Text(json.into())).await;
+    }
+
+    // Re-send loaded G-code file (for 3D viewer on reconnect)
+    let loaded_gcode = state.loaded_gcode.read().clone();
+    if let Some(gcode_info) = loaded_gcode {
+        info!(
+            "Sending cached GCodeLoaded on reconnect: {} ({} lines)",
+            gcode_info.name,
+            gcode_info.lines.len()
+        );
+        let msg = ServerMessage::GCodeLoaded(gcode_info);
+        if let Ok(json) = codec::encode_server_message(&msg) {
+            let _ = ws_tx.send(Message::Text(json.into())).await;
+        }
+    } else {
+        info!("No cached GCodeLoaded to send on reconnect");
     }
 
     // Subscribe to broadcast channel
@@ -76,16 +93,18 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(msg)) = ws_rx.next().await {
             match msg {
-                Message::Text(text) => {
-                    match codec::decode_client_message(&text) {
-                        Ok(client_msg) => {
-                            handle_client_message(client_msg, &state_clone, &direct_tx).await;
-                        }
-                        Err(e) => {
-                            warn!("Invalid WebSocket message: {}", e);
-                        }
+                Message::Text(text) => match codec::decode_client_message(&text) {
+                    Ok(client_msg) => {
+                        handle_client_message(client_msg, &state_clone, &direct_tx).await;
                     }
-                }
+                    Err(e) => {
+                        debug!(
+                            "Invalid WebSocket message: {} | raw: {}",
+                            e,
+                            &text[..text.len().min(200)]
+                        );
+                    }
+                },
                 Message::Close(_) => break,
                 _ => {}
             }
@@ -107,23 +126,57 @@ async fn handle_client_message(
     state: &AppState,
     direct_tx: &tokio::sync::mpsc::Sender<ServerMessage>,
 ) {
+    let is_connected = state
+        .machine_state
+        .connected
+        .load(std::sync::atomic::Ordering::Acquire);
+
     match msg {
         ClientMessage::RealtimeCommand(cmd_msg) => {
+            if !is_connected {
+                let _ = direct_tx
+                    .send(ServerMessage::Error(ErrorNotification {
+                        code: None,
+                        message: "Not connected to a controller".into(),
+                        source: "ws".into(),
+                    }))
+                    .await;
+                return;
+            }
             if let Some(cmd) = RealtimeCommand::from_str_name(&cmd_msg.command) {
-                let _ = state
-                    .streamer_cmd_tx
-                    .send(StreamerCommand::Realtime(cmd));
+                info!("RT command received: {} -> {:?}", cmd_msg.command, cmd);
+                let _ = state.streamer_cmd_tx.send(StreamerCommand::Realtime(cmd));
             } else {
                 warn!("Unknown RT command: {}", cmd_msg.command);
             }
         }
         ClientMessage::Jog(jog) => {
+            if !is_connected {
+                let _ = direct_tx
+                    .send(ServerMessage::Error(ErrorNotification {
+                        code: None,
+                        message: "Not connected to a controller".into(),
+                        source: "ws".into(),
+                    }))
+                    .await;
+                return;
+            }
             let grbl_cmd = jog.to_grbl_command();
             let _ = state
                 .streamer_cmd_tx
                 .send(StreamerCommand::RawCommand(grbl_cmd));
         }
         ClientMessage::ConsoleSend(line) => {
+            if !is_connected {
+                let _ = direct_tx
+                    .send(ServerMessage::Error(ErrorNotification {
+                        code: None,
+                        message: "Not connected to a controller".into(),
+                        source: "ws".into(),
+                    }))
+                    .await;
+                return;
+            }
             let _ = state
                 .planner_tx
                 .send(PlannerCommand::SendCommand(line))
@@ -132,7 +185,25 @@ async fn handle_client_message(
         ClientMessage::JobControl(action) => {
             use rustcnc_core::ws_protocol::JobControlAction;
             let cmd = match action {
-                JobControlAction::Start => PlannerCommand::StartJob,
+                JobControlAction::Start {
+                    start_line,
+                    stop_line,
+                } => {
+                    if !is_connected {
+                        let _ = direct_tx
+                            .send(ServerMessage::Error(ErrorNotification {
+                                code: None,
+                                message: "Not connected to a controller".into(),
+                                source: "ws".into(),
+                            }))
+                            .await;
+                        return;
+                    }
+                    PlannerCommand::StartJob {
+                        start_line,
+                        stop_line,
+                    }
+                }
                 JobControlAction::Pause => PlannerCommand::PauseJob,
                 JobControlAction::Resume => PlannerCommand::ResumeJob,
                 JobControlAction::Stop => PlannerCommand::CancelJob,
@@ -140,11 +211,29 @@ async fn handle_client_message(
             let _ = state.planner_tx.send(cmd).await;
         }
         ClientMessage::Connect(req) => {
-            // Connection management handled via REST API for now
             debug!("WS Connect request: {}@{}", req.port, req.baud_rate);
+            let _ = direct_tx
+                .send(ServerMessage::ConsoleOutput(ConsoleEntry {
+                    direction: ConsoleDirection::System,
+                    text: format!("Connecting to {} @ {}", req.port, req.baud_rate),
+                    timestamp: chrono::Utc::now().timestamp_millis(),
+                }))
+                .await;
+            let _ = state.streamer_cmd_tx.send(StreamerCommand::Connect {
+                port: req.port,
+                baud_rate: req.baud_rate,
+            });
         }
         ClientMessage::Disconnect => {
-            debug!("WS Disconnect request");
+            info!("Disconnect requested via WS");
+            let _ = direct_tx
+                .send(ServerMessage::ConsoleOutput(ConsoleEntry {
+                    direction: ConsoleDirection::System,
+                    text: "Disconnecting...".into(),
+                    timestamp: chrono::Utc::now().timestamp_millis(),
+                }))
+                .await;
+            let _ = state.streamer_cmd_tx.send(StreamerCommand::Disconnect);
         }
         ClientMessage::RequestSync => {
             // State sync is already sent on connect
@@ -157,15 +246,11 @@ async fn handle_client_message(
                 .map(|p| rustcnc_core::ws_protocol::PortInfo {
                     path: p.port_name.clone(),
                     manufacturer: match &p.port_type {
-                        serialport::SerialPortType::UsbPort(info) => {
-                            info.manufacturer.clone()
-                        }
+                        serialport::SerialPortType::UsbPort(info) => info.manufacturer.clone(),
                         _ => None,
                     },
                     product: match &p.port_type {
-                        serialport::SerialPortType::UsbPort(info) => {
-                            info.product.clone()
-                        }
+                        serialport::SerialPortType::UsbPort(info) => info.product.clone(),
                         _ => None,
                     },
                 })
@@ -176,6 +261,12 @@ async fn handle_client_message(
         ClientMessage::Ping => {
             // Send Pong directly to requesting client, not broadcast
             let _ = direct_tx.send(ServerMessage::Pong).await;
+        }
+        ClientMessage::SchedulePause(cond) => {
+            let _ = state
+                .planner_tx
+                .send(PlannerCommand::SchedulePause(cond))
+                .await;
         }
     }
 }
@@ -204,9 +295,9 @@ fn build_state_sync(state: &AppState) -> ServerMessage {
             .map(|f| rustcnc_core::ws_protocol::FileInfo {
                 id: f.id.to_string(),
                 name: f.name.clone(),
-                size_bytes: f.lines.iter().map(|l| l.byte_len as u64).sum(),
-                line_count: f.total_lines,
-                loaded_at: f.loaded_at.to_rfc3339(),
+                size_bytes: f.size_bytes,
+                line_count: f.line_count,
+                loaded_at: f.uploaded_at.to_rfc3339(),
             })
             .collect(),
     }))

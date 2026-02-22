@@ -1,5 +1,5 @@
 import { Component, createSignal, For, onCleanup, createEffect } from 'solid-js';
-import { consoleLines } from '../../lib/store';
+import { consoleLines, setConsoleLines } from '../../lib/store';
 import { ws } from '../../lib/ws';
 import type { ConsoleEntry } from '../../lib/types';
 import styles from './Console.module.css';
@@ -8,7 +8,9 @@ const Console: Component = () => {
   const [input, setInput] = createSignal('');
   const [history, setHistory] = createSignal<string[]>([]);
   const [historyIdx, setHistoryIdx] = createSignal(-1);
+  const [height, setHeight] = createSignal(250);
   let outputRef: HTMLDivElement | undefined;
+  let containerRef: HTMLDivElement | undefined;
 
   // Auto-scroll to bottom on new messages (only if user is near bottom)
   createEffect(() => {
@@ -56,6 +58,31 @@ const Console: Component = () => {
     }
   };
 
+  const renderConsoleText = (text: string) => {
+    // Setting lines: "$110=8000.000 (X-axis maximum rate, mm/min)"
+    const m = text.match(/^(\$\d+=\S+)\s+(\(.+\))$/);
+    if (m) {
+      return <>{m[1]} <span class={styles.settingDesc}>{m[2]}</span></>;
+    }
+    return text;
+  };
+
+  const handleResizeStart = (e: MouseEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startH = height();
+    const onMove = (ev: MouseEvent) => {
+      const newH = Math.max(100, startH + (ev.clientY - startY));
+      setHeight(newH);
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
   const dirClass = (entry: ConsoleEntry) => {
     switch (entry.direction) {
       case 'Sent': return styles.sent;
@@ -66,7 +93,7 @@ const Console: Component = () => {
   };
 
   return (
-    <div class={'panel ' + styles.console}>
+    <div class={'panel ' + styles.console} ref={containerRef} style={{ height: `${height()}px` }}>
       <div class="panel-header">Console</div>
       <div class={styles.output} ref={outputRef}>
         <For each={consoleLines()}>
@@ -75,7 +102,7 @@ const Console: Component = () => {
               <span class={styles.dir}>
                 {entry.direction === 'Sent' ? '>' : entry.direction === 'Received' ? '<' : '#'}
               </span>
-              <span class={styles.text}>{entry.text}</span>
+              <span class={styles.text}>{renderConsoleText(entry.text)}</span>
             </div>
           )}
         </For>
@@ -89,10 +116,14 @@ const Console: Component = () => {
           onInput={(e) => setInput(e.currentTarget.value)}
           onKeyDown={handleKeyDown}
         />
+        <button class={styles.clearBtn} onClick={() => setConsoleLines([])}>
+          Clear
+        </button>
         <button class={styles.sendBtn} onClick={handleSend}>
           Send
         </button>
       </div>
+      <div class={styles.resizeHandle} onMouseDown={handleResizeStart} />
     </div>
   );
 };

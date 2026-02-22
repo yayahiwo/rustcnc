@@ -1,4 +1,4 @@
-import type { ClientMessage, ServerMessage } from './types';
+import type { ClientMessage, PauseCondition, ServerMessage } from './types';
 
 export type MessageHandler = (msg: ServerMessage) => void;
 
@@ -12,6 +12,8 @@ export class WsClient {
   private maxReconnectDelay = 10000;
   private pingInterval: ReturnType<typeof setInterval> | null = null;
   private _connected = false;
+  private _pingSentAt = 0;
+  private _latencyMs = -1;
 
   constructor(url?: string) {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -20,6 +22,10 @@ export class WsClient {
 
   get connected(): boolean {
     return this._connected;
+  }
+
+  get latencyMs(): number {
+    return this._latencyMs;
   }
 
   /** Subscribe to incoming messages */
@@ -47,10 +53,11 @@ export class WsClient {
       // Request full state sync on (re)connect
       this.send({ type: 'RequestSync' });
 
-      // Start keepalive pings
+      // Start keepalive pings (also measures latency)
       this.pingInterval = setInterval(() => {
+        this._pingSentAt = performance.now();
         this.send({ type: 'Ping' });
-      }, 15000);
+      }, 5000);
     };
 
     this.ws.onmessage = (event) => {
@@ -60,6 +67,10 @@ export class WsClient {
       } catch (e) {
         console.warn('[WS] Failed to parse message:', e);
         return;
+      }
+      // Measure latency on Pong
+      if (msg.type === 'Pong' && this._pingSentAt > 0) {
+        this._latencyMs = Math.round(performance.now() - this._pingSentAt);
       }
       for (const handler of this.handlers) {
         try {
@@ -109,8 +120,17 @@ export class WsClient {
   }
 
   /** Send job control action */
-  sendJobControl(action: 'Start' | 'Pause' | 'Resume' | 'Stop'): void {
-    this.send({ type: 'JobControl', data: action });
+  sendJobControl(action: 'Start' | 'Pause' | 'Resume' | 'Stop', opts?: { startLine?: number; stopLine?: number }): void {
+    if (action === 'Start' && opts && (opts.startLine || opts.stopLine)) {
+      this.send({ type: 'JobControl', data: { action: 'Start', start_line: opts.startLine, stop_line: opts.stopLine } });
+    } else {
+      this.send({ type: 'JobControl', data: { action } });
+    }
+  }
+
+  /** Schedule a pause at a specific condition, or cancel with null */
+  sendSchedulePause(condition: PauseCondition | null): void {
+    this.send({ type: 'SchedulePause', data: condition });
   }
 
   /** Request full state sync */

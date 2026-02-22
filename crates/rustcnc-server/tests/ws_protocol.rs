@@ -141,7 +141,10 @@ fn test_client_message_roundtrip() {
         ClientMessage::ConsoleSend("G28.1".to_string()),
         ClientMessage::RequestSync,
         ClientMessage::Ping,
-        ClientMessage::JobControl(JobControlAction::Start),
+        ClientMessage::JobControl(JobControlAction::Start {
+            start_line: None,
+            stop_line: None,
+        }),
         ClientMessage::JobControl(JobControlAction::Pause),
         ClientMessage::JobControl(JobControlAction::Resume),
         ClientMessage::JobControl(JobControlAction::Stop),

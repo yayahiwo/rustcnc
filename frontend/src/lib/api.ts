@@ -10,6 +10,12 @@ async function request<T>(path: string, opts?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  // Auth
+  authStatus: () => request<{ enabled: boolean; authenticated: boolean; username?: string | null }>('/auth/status'),
+  authLogin: (username: string, password: string) =>
+    request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  authLogout: () => request('/auth/logout', { method: 'POST' }),
+
   // Connection
   listPorts: () => request<{ path: string; manufacturer?: string; product?: string }[]>('/ports'),
   connect: (port: string, baud_rate = 115200) =>

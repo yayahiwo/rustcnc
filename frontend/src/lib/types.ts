@@ -134,11 +134,19 @@ export interface PortInfo {
   product?: string;
 }
 
+export interface ArcData {
+  i: number;
+  j: number;
+  k: number;
+  plane: number;
+}
+
 export interface GCodeLineInfo {
   line_num: number;
   text: string;
   move_type?: string;
   endpoint?: number[];
+  arc?: ArcData;
 }
 
 export interface GCodeFileInfo {
@@ -159,9 +167,37 @@ export type ServerMessage =
   | { type: 'Alarm'; data: AlarmNotification }
   | { type: 'GCodeLoaded'; data: GCodeFileInfo }
   | { type: 'PortList'; data: PortInfo[] }
-  | { type: 'Pong' };
+  | { type: 'Pong' }
+  | { type: 'SystemAlert'; data: string | null }
+  | { type: 'SystemInfo'; data: SystemInfo };
+
+export interface SystemInfo {
+  cpu_load: [number, number, number];
+  memory_total_mb: number;
+  memory_used_mb: number;
+  disk_total_gb: number;
+  disk_used_gb: number;
+  temperature_c?: number;
+  uptime_secs: number;
+  firmware_version?: string;
+  serial_port?: string;
+  connection_uptime_secs: number;
+  grbl_info?: Record<string, string>;
+}
+
+// ── Pause condition ──
+
+export type PauseCondition =
+  | 'EndOfLayer'
+  | { AtZDepth: { z: number } };
 
 // ── Client → Server messages ──
+
+export type JobControlAction =
+  | { action: 'Start'; start_line?: number; stop_line?: number }
+  | { action: 'Pause' }
+  | { action: 'Resume' }
+  | { action: 'Stop' };
 
 export type ClientMessage =
   | { type: 'RealtimeCommand'; data: { command: string } }
@@ -169,10 +205,11 @@ export type ClientMessage =
   | { type: 'ConsoleSend'; data: string }
   | { type: 'RequestSync' }
   | { type: 'Ping' }
-  | { type: 'JobControl'; data: 'Start' | 'Pause' | 'Resume' | 'Stop' }
+  | { type: 'JobControl'; data: JobControlAction }
   | { type: 'Connect'; data: { port: string; baud_rate: number } }
   | { type: 'Disconnect' }
-  | { type: 'RequestPortList' };
+  | { type: 'RequestPortList' }
+  | { type: 'SchedulePause'; data: PauseCondition | null };
 
 export interface JogCommand {
   x?: number;

@@ -1,0 +1,24 @@
+[Unit]
+Description=RustCNC CNC Controller
+After=network.target
+
+[Service]
+Type=simple
+User=rustcnc
+Group=rustcnc
+SupplementaryGroups=dialout
+WorkingDirectory=/opt/rustcnc
+ExecStart=/opt/rustcnc/rustcnc --config /opt/rustcnc/config.toml
+Restart=on-failure
+RestartSec=2
+
+# Optional: allow SCHED_FIFO (rt_priority) without setcap(8).
+AmbientCapabilities=CAP_SYS_NICE
+CapabilityBoundingSet=CAP_SYS_NICE
+LimitRTPRIO=90
+
+# Ensure /var/log/rustcnc exists and is writable by the service user.
+LogsDirectory=rustcnc
+
+[Install]
+WantedBy=multi-user.target

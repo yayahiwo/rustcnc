@@ -12,6 +12,9 @@ host = "0.0.0.0"
 port = 8080
 ws_tick_rate_hz = 100
 ws_idle_tick_rate_hz = 5
+# Allowed browser Origins for unsafe API calls (POST/DELETE) and `/ws`.
+# Keep empty for strict same-origin.
+# allowed_origins = ["http://localhost:5173"]
 
 [serial]
 baud_rate = 115200
@@ -28,11 +31,13 @@ level = "info"
 log_dir = "/var/log/rustcnc"
 console_output = false
 
-[simulator]
-enabled = false
-motion_speed_factor = 10.0
-startup_delay_ms = 100
-
 [files]
-upload_dir = "/home/pi/gcode_files"
+upload_dir = "./gcode_files"
 max_file_size_mb = 200
+
+# [auth]
+# For production, enable Web UI authentication during install (recommended).
+# enabled = true
+# username = "admin"
+# password_hash = "sha256-iter:v1:..."
+# session_ttl_secs = 86400

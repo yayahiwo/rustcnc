@@ -1,8 +1,9 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::job::JobState;
-use crate::machine::{FirmwareType, MachineSnapshot, MachineState};
-use crate::overrides::Overrides;
+use crate::machine::MachineSnapshot;
 
 // ── Server → Client messages ─────────────────────────────────────
 
@@ -32,6 +33,10 @@ pub enum ServerMessage {
     PortList(Vec<PortInfo>),
     /// Pong (response to Ping)
     Pong,
+    /// System alert (undervoltage, throttling, etc.) — None clears
+    SystemAlert(Option<String>),
+    /// System info (Pi stats, connection info)
+    SystemInfo(SystemInfoData),
 }
 
 // ── Client → Server messages ─────────────────────────────────────
@@ -58,9 +63,20 @@ pub enum ClientMessage {
     Disconnect,
     /// Request list of available serial ports
     RequestPortList,
+    /// Schedule a pause at a specific condition (None = cancel)
+    SchedulePause(Option<PauseCondition>),
 }
 
 // ── Supporting types ──────────────────────────────────────────────
+
+/// Condition for a scheduled pause during a running job
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PauseCondition {
+    /// Pause just before the next Z change
+    EndOfLayer,
+    /// Pause when Z reaches a specific depth
+    AtZDepth { z: f64 },
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RealtimeCommandMsg {
@@ -134,9 +150,15 @@ pub struct ConnectRequest {
     pub baud_rate: u32,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "action")]
 pub enum JobControlAction {
-    Start,
+    Start {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        start_line: Option<usize>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        stop_line: Option<usize>,
+    },
     Pause,
     Resume,
     Stop,
@@ -214,6 +236,17 @@ pub struct GCodeLineInfo {
     pub move_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub endpoint: Option<Vec<f64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arc: Option<ArcDataInfo>,
+}
+
+/// Arc center offsets and plane for G2/G3 visualization
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArcDataInfo {
+    pub i: f64,
+    pub j: f64,
+    pub k: f64,
+    pub plane: u8,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -237,6 +270,37 @@ pub struct PortInfo {
     pub manufacturer: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub product: Option<String>,
+}
+
+/// System information (host stats, connection details)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SystemInfoData {
+    /// CPU load averages (1m, 5m, 15m)
+    pub cpu_load: [f32; 3],
+    /// Total RAM in MB
+    pub memory_total_mb: u64,
+    /// Used RAM in MB
+    pub memory_used_mb: u64,
+    /// Total disk in GB
+    pub disk_total_gb: f64,
+    /// Used disk in GB
+    pub disk_used_gb: f64,
+    /// CPU temperature in °C (None if unavailable)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature_c: Option<f32>,
+    /// System uptime in seconds
+    pub uptime_secs: u64,
+    /// Firmware welcome string (e.g. "grblHAL 1.1f ['$' for help]")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub firmware_version: Option<String>,
+    /// Serial port path (e.g. "/dev/ttyACM0")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub serial_port: Option<String>,
+    /// Seconds since serial connection was established
+    pub connection_uptime_secs: u64,
+    /// grblHAL $I build info (e.g. BOARD, DRIVER, FIRMWARE, etc.)
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub grbl_info: HashMap<String, String>,
 }
 
 #[cfg(test)]

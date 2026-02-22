@@ -5,6 +5,9 @@ host = "0.0.0.0"
 port = 8888
 ws_tick_rate_hz = 100
 ws_idle_tick_rate_hz = 5
+# Allowed browser Origins for unsafe API calls (POST/DELETE) and `/ws` (dev tooling, proxies).
+# Leave empty for strict same-origin.
+# allowed_origins = ["http://localhost:5173"]
 
 [serial]
 baud_rate = 115200
@@ -20,11 +23,15 @@ response_timeout_ms = 5000
 level = "info"
 console_output = true
 
-[simulator]
-enabled = false
-motion_speed_factor = 10.0
-startup_delay_ms = 100
-
 [files]
 upload_dir = "./gcode_files"
 max_file_size_mb = 100
+
+# [auth]
+# Enable username/password login for the Web UI.
+# enabled = true
+# username = "admin"
+# Generate a password hash on the Pi:
+#   printf '%s' 'PASSWORD' | /opt/rustcnc/rustcnc --hash-password-stdin
+# password_hash = "sha256-iter:v1:..."
+# session_ttl_secs = 86400

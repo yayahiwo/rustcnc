@@ -1,11 +1,63 @@
 .viewer {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 120px;
+  min-height: 100px;
+  flex: none;
 }
 
-.filename {
+.resizeHandle {
+  height: 5px;
+  cursor: ns-resize;
+  flex-shrink: 0;
+}
+
+.resizeHandle:hover,
+.resizeHandle:active {
+  background: var(--accent-blue);
+  opacity: 0.5;
+}
+
+.pickBtn {
+  margin-left: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  cursor: pointer;
+}
+
+.pickBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.pickBtnActive {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.pickBtnActive:hover {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.pickBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.linePick {
+  cursor: crosshair;
+}
+
+.fileInfo {
+  flex: 1;
+  margin-left: var(--gap-sm);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   color: var(--text-muted);
@@ -39,6 +91,11 @@
   opacity: 0.5;
 }
 
+.picked {
+  background: rgba(255, 180, 50, 0.18) !important;
+  border-left: 2px solid #ffb432;
+}
+
 .num {
   width: 48px;
   flex-shrink: 0;
@@ -50,6 +107,15 @@
 
 .text {
   white-space: pre;
+}
+
+.desc {
+  margin-left: var(--gap-sm);
+  color: var(--accent-blue);
+  font-size: var(--font-size-xs);
+  opacity: 0.7;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .empty {

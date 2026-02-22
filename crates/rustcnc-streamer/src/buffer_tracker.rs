@@ -131,7 +131,7 @@ mod tests {
         let mut tracker = BufferTracker::new(128);
         tracker.line_sent(100);
         assert!(!tracker.can_send(29)); // 100 + 29 = 129 > 128
-        assert!(tracker.can_send(28));  // 100 + 28 = 128 = 128
+        assert!(tracker.can_send(28)); // 100 + 28 = 128 = 128
     }
 
     #[test]
@@ -200,11 +200,11 @@ mod tests {
     fn test_interleaved_send_ack() {
         let mut tracker = BufferTracker::new(128);
 
-        tracker.line_sent(40);   // used: 40
-        tracker.line_sent(40);   // used: 80
+        tracker.line_sent(40); // used: 40
+        tracker.line_sent(40); // used: 80
         tracker.line_acknowledged(); // used: 40
-        tracker.line_sent(40);   // used: 80
-        tracker.line_sent(40);   // used: 120
+        tracker.line_sent(40); // used: 80
+        tracker.line_sent(40); // used: 120
         assert!(tracker.can_send(8));
         assert!(!tracker.can_send(9));
 

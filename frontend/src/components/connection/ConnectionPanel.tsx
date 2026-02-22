@@ -1,19 +1,23 @@
-import { Component, createSignal, onMount, Show } from 'solid-js';
+import { Component, createSignal, For, onMount, Show } from 'solid-js';
 import { connectionState, ports } from '../../lib/store';
 import { ws } from '../../lib/ws';
-import PortSelector from './PortSelector';
 import styles from './ConnectionPanel.module.css';
+
+const BAUD_RATES = [9600, 19200, 38400, 57600, 115200, 250000];
 
 const ConnectionPanel: Component = () => {
   const [selectedPort, setSelectedPort] = createSignal('');
+  const [manualPort, setManualPort] = createSignal('');
   const [baudRate, setBaudRate] = createSignal(115200);
+
+  const effectivePort = () => manualPort() || selectedPort();
 
   onMount(() => {
     ws.requestPorts();
   });
 
   const handleConnect = () => {
-    const port = selectedPort();
+    const port = effectivePort();
     if (!port) return;
     ws.send({ type: 'Connect', data: { port, baud_rate: baudRate() } });
   };
@@ -29,57 +33,89 @@ const ConnectionPanel: Component = () => {
   const isConnected = () => connectionState().connected;
 
   return (
-    <div class={styles.panel}>
-      <div class={styles.header}>Connection</div>
+    <div class="panel">
+      <div class="panel-header">
+        <span>Connection</span>
+        <Show when={isConnected()}>
+          <span class={styles.statusDot} />
+        </Show>
+      </div>
       <div class={styles.body}>
-        <Show
-          when={!isConnected()}
-          fallback={
-            <div class={styles.connected}>
-              <div class={styles.connInfo}>
-                <span class={styles.dot} />
-                <span>{connectionState().port || 'Connected'}</span>
-              </div>
-              <Show when={connectionState().firmware}>
-                <span class={styles.firmware}>
-                  {connectionState().firmware} {connectionState().version || ''}
-                </span>
-              </Show>
-              <button class={styles.disconnectBtn} onClick={handleDisconnect}>
-                Disconnect
-              </button>
-            </div>
-          }
-        >
-          <PortSelector
-            ports={ports()}
-            selected={selectedPort()}
-            onSelect={setSelectedPort}
-            onRefresh={handleRefresh}
+        <div class={styles.row}>
+          <label class={styles.label}>Port</label>
+          <select
+            class={styles.select}
+            value={selectedPort()}
+            onChange={(e) => setSelectedPort(e.currentTarget.value)}
+            disabled={isConnected()}
+          >
+            <option value="">Select port...</option>
+            <For each={ports()}>
+              {(port) => (
+                <option value={port.path}>
+                  {port.path}{port.manufacturer ? ` (${port.manufacturer})` : ''}
+                </option>
+              )}
+            </For>
+          </select>
+          <button
+            class={styles.refreshBtn}
+            onClick={handleRefresh}
+            title="Refresh ports"
+            disabled={isConnected()}
+          >
+            &#x21bb;
+          </button>
+        </div>
+
+        <div class={styles.row}>
+          <label class={styles.label}>Path</label>
+          <input
+            class={styles.input}
+            type="text"
+            placeholder="/dev/ttyUSB0"
+            value={manualPort()}
+            onInput={(e) => setManualPort(e.currentTarget.value)}
+            disabled={isConnected()}
           />
-          <div class={styles.baudRow}>
-            <label class={styles.label}>Baud</label>
-            <select
-              value={baudRate()}
-              onChange={(e) => setBaudRate(Number(e.currentTarget.value))}
-              class={styles.select}
-            >
-              <option value={9600}>9600</option>
-              <option value={19200}>19200</option>
-              <option value={38400}>38400</option>
-              <option value={57600}>57600</option>
-              <option value={115200}>115200</option>
-              <option value={230400}>230400</option>
-            </select>
+        </div>
+
+        <div class={styles.row}>
+          <label class={styles.label}>Baud</label>
+          <select
+            class={styles.select}
+            value={baudRate()}
+            onChange={(e) => setBaudRate(Number(e.currentTarget.value))}
+            disabled={isConnected()}
+          >
+            <For each={BAUD_RATES}>
+              {(rate) => <option value={rate}>{rate}</option>}
+            </For>
+          </select>
+        </div>
+
+        <Show when={isConnected() && connectionState().firmware}>
+          <div class={styles.firmware}>
+            {connectionState().firmware} {connectionState().version || ''}
           </div>
+        </Show>
+
+        <div class={styles.buttons}>
           <button
             class={styles.connectBtn}
             onClick={handleConnect}
-            disabled={!selectedPort()}
+            disabled={!effectivePort() || isConnected()}
           >
             Connect
           </button>
-        </Show>
+          <button
+            class={styles.disconnectBtn}
+            onClick={handleDisconnect}
+            disabled={!isConnected()}
+          >
+            Disconnect
+          </button>
+        </div>
       </div>
     </div>
   );

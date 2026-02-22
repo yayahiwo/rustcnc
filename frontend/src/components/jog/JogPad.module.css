@@ -36,6 +36,15 @@
   transform: scale(0.95);
 }
 
+.diagBtn {
+  padding: 8px;
+}
+
+.diagBtn svg {
+  width: 18px;
+  height: 18px;
+}
+
 .zBtn {
   background: var(--bg-surface);
 }

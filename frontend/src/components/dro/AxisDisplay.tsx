@@ -6,10 +6,12 @@ interface Props {
   axis: string;
   value: string;
   color: string;
+  disabled?: boolean;
 }
 
 const AxisDisplay: Component<Props> = (props) => {
   const handleZero = () => {
+    if (props.disabled) return;
     const axis = props.axis.toUpperCase();
     ws.sendConsole(`G10 L20 P1 ${axis}0`);
   };
@@ -22,7 +24,7 @@ const AxisDisplay: Component<Props> = (props) => {
       <span class={styles.value}>
         {props.value}
       </span>
-      <button class={styles.zero} onClick={handleZero} title={`Zero ${props.axis} axis`}>
+      <button class={styles.zero} onClick={handleZero} disabled={props.disabled} title={`Zero ${props.axis} axis`}>
         0
       </button>
     </div>

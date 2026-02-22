@@ -3,10 +3,9 @@ use std::sync::Arc;
 
 use tokio::sync::broadcast;
 use tokio::time::{interval, Duration};
+use tracing::warn;
 
-use rustcnc_core::machine::{
-    AccessoryState, BufferState, InputPins, MachineSnapshot, MachineState, FirmwareType,
-};
+use rustcnc_core::machine::{AccessoryState, MachineSnapshot, MachineState};
 use rustcnc_core::overrides::Overrides;
 use rustcnc_core::ws_protocol::ServerMessage;
 use rustcnc_streamer::streamer::SharedMachineState;
@@ -22,8 +21,23 @@ pub async fn broadcaster_task(
     active_rate_hz: u32,
     idle_rate_hz: u32,
 ) {
-    let active_interval = Duration::from_micros(1_000_000 / active_rate_hz.max(1) as u64);
-    let idle_interval = Duration::from_micros(1_000_000 / idle_rate_hz.max(1) as u64);
+    let active_rate_hz_clamped = active_rate_hz.clamp(1, 1_000_000);
+    if active_rate_hz_clamped != active_rate_hz {
+        warn!(
+            "Clamping server.ws_tick_rate_hz from {} to {}",
+            active_rate_hz, active_rate_hz_clamped
+        );
+    }
+    let idle_rate_hz_clamped = idle_rate_hz.clamp(1, 1_000_000);
+    if idle_rate_hz_clamped != idle_rate_hz {
+        warn!(
+            "Clamping server.ws_idle_tick_rate_hz from {} to {}",
+            idle_rate_hz, idle_rate_hz_clamped
+        );
+    }
+
+    let active_interval = Duration::from_micros(1_000_000 / active_rate_hz_clamped as u64);
+    let idle_interval = Duration::from_micros(1_000_000 / idle_rate_hz_clamped as u64);
 
     let mut ticker = interval(idle_interval);
     let mut is_active = false;
@@ -77,13 +91,10 @@ fn read_snapshot(s: &SharedMachineState) -> MachineSnapshot {
             flood_coolant: s.coolant_flood.load(Ordering::Acquire),
             mist_coolant: s.coolant_mist.load(Ordering::Acquire),
         },
-        // TODO: InputPins and BufferState are available in StatusReport but not yet
-        // stored in SharedMachineState. Add atomic fields for these when needed.
-        input_pins: InputPins::default(),
-        buffer: BufferState::default(),
+        input_pins: s.input_pins(),
+        buffer: s.buffer_state(),
         line_number: s.line_number.load(Ordering::Acquire),
         connected: s.connected.load(Ordering::Acquire),
-        // TODO: Store firmware type in SharedMachineState when Welcome message is parsed
-        firmware: FirmwareType::Unknown,
+        firmware: s.firmware(),
     }
 }

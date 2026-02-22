@@ -11,8 +11,10 @@ import type {
   AlarmNotification,
   ServerMessage,
   GCodeFileInfo,
+  SystemInfo,
 } from './types';
 import { ws } from './ws';
+import { authEnabled, authenticated, refreshAuthStatus } from './auth';
 
 // ── Machine State Signals ──
 
@@ -64,13 +66,26 @@ export const [ports, setPorts] = createSignal<PortInfo[]>([]);
 
 export const [alarm, setAlarm] = createSignal<AlarmNotification | null>(null);
 
+// ── System Alert (undervoltage, throttling) ──
+
+export const [systemAlert, setSystemAlert] = createSignal<string | null>(null);
+
+// ── System Info ──
+
+export const [systemInfo, setSystemInfo] = createSignal<SystemInfo | null>(null);
+
 // ── G-code for 3D viewer ──
 
 export const [gcodeFile, setGcodeFile] = createSignal<GCodeFileInfo | null>(null);
 
+// ── Picked line from 3D viewer ──
+
+export const [pickedLineNum, setPickedLineNum] = createSignal<number | null>(null);
+
 // ── WebSocket connected ──
 
 export const [wsConnected, setWsConnected] = createSignal(false);
+export const [wsLatency, setWsLatency] = createSignal(-1);
 
 // ── State name helper ──
 
@@ -99,6 +114,9 @@ function handleServerMessage(msg: ServerMessage): void {
       break;
     }
     case 'JobProgress':
+      if (msg.data.estimated_remaining_secs != null) {
+        console.log('[EST]', msg.data.estimated_remaining_secs, 'remaining secs');
+      }
       setJobProgress(msg.data);
       break;
     case 'ConsoleOutput':
@@ -154,11 +172,18 @@ function handleServerMessage(msg: ServerMessage): void {
       break;
     case 'GCodeLoaded':
       setGcodeFile(msg.data);
+      setPickedLineNum(null);
       break;
     case 'PortList':
       setPorts(msg.data);
       break;
     case 'Pong':
+      break;
+    case 'SystemAlert':
+      setSystemAlert(msg.data);
+      break;
+    case 'SystemInfo':
+      setSystemInfo(msg.data);
       break;
   }
 }
@@ -167,13 +192,33 @@ function handleServerMessage(msg: ServerMessage): void {
 
 let initialized = false;
 let wsCheckInterval: ReturnType<typeof setInterval> | undefined;
+let lastAuthPollAt = 0;
+const AUTH_POLL_MS = 5000;
 
 export function initStore(): void {
   if (initialized) return;
   initialized = true;
   ws.onMessage(handleServerMessage);
-  ws.connect();
 
-  // Track WS connection status
-  wsCheckInterval = setInterval(() => setWsConnected(ws.connected), 1000);
+  // Gate WS connect behind auth status (when enabled).
+  lastAuthPollAt = Date.now();
+  void refreshAuthStatus().then((st) => {
+    if (!st.enabled || st.authenticated) {
+      ws.connect();
+    }
+  });
+
+  // Track WS connection status and latency
+  wsCheckInterval = setInterval(() => {
+    setWsConnected(ws.connected);
+    setWsLatency(ws.latencyMs);
+
+    // If WS can't connect and we think we're logged in, refresh status to detect
+    // server restarts (in-memory sessions) and show the login overlay.
+    const now = Date.now();
+    if (authEnabled() && authenticated() && !ws.connected && now - lastAuthPollAt > AUTH_POLL_MS) {
+      lastAuthPollAt = now;
+      void refreshAuthStatus();
+    }
+  }, 1000);
 }

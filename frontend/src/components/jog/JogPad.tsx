@@ -21,6 +21,11 @@ const JogPad: Component = () => {
     ws.sendJog({ [axisKey]: direction * stepSize() }, feedRate(), true);
   };
 
+  const jogDiag = (xDir: number, yDir: number) => {
+    if (!canJog()) return;
+    ws.sendJog({ x: xDir * stepSize(), y: yDir * stepSize() }, feedRate(), true);
+  };
+
   const jogCancel = () => {
     ws.sendRT('jog_cancel');
   };
@@ -32,17 +37,27 @@ const JogPad: Component = () => {
       <div class="panel-header">Jog Control</div>
       <div class={styles.body}>
         <div class={styles.grid}>
-          {/* Row 1: Y+ and Z+ */}
-          <div />
+          {/* Row 1: ↖ Y+ ↗ Z+ */}
+          <button class={styles.jogBtn + ' ' + styles.diagBtn} onClick={() => jogDiag(-1, 1)} disabled={!canJog()} title="X- Y+">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="14" y1="14" x2="5" y2="5" />
+              <polyline points="5,10 5,5 10,5" />
+            </svg>
+          </button>
           <button class={styles.jogBtn} onClick={() => jog('y', 1)} disabled={!canJog()}>
             Y+
           </button>
-          <div />
+          <button class={styles.jogBtn + ' ' + styles.diagBtn} onClick={() => jogDiag(1, 1)} disabled={!canJog()} title="X+ Y+">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="6" y1="14" x2="15" y2="5" />
+              <polyline points="10,5 15,5 15,10" />
+            </svg>
+          </button>
           <button class={styles.jogBtn + ' ' + styles.zBtn} onClick={() => jog('z', 1)} disabled={!canJog()}>
             Z+
           </button>
 
-          {/* Row 2: X- and X+ */}
+          {/* Row 2: X- ✕ X+ */}
           <button class={styles.jogBtn} onClick={() => jog('x', -1)} disabled={!canJog()}>
             X-
           </button>
@@ -54,12 +69,22 @@ const JogPad: Component = () => {
           </button>
           <div />
 
-          {/* Row 3: Y- and Z- */}
-          <div />
+          {/* Row 3: ↙ Y- ↘ Z- */}
+          <button class={styles.jogBtn + ' ' + styles.diagBtn} onClick={() => jogDiag(-1, -1)} disabled={!canJog()} title="X- Y-">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="14" y1="6" x2="5" y2="15" />
+              <polyline points="5,10 5,15 10,15" />
+            </svg>
+          </button>
           <button class={styles.jogBtn} onClick={() => jog('y', -1)} disabled={!canJog()}>
             Y-
           </button>
-          <div />
+          <button class={styles.jogBtn + ' ' + styles.diagBtn} onClick={() => jogDiag(1, -1)} disabled={!canJog()} title="X+ Y-">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="6" y1="6" x2="15" y2="15" />
+              <polyline points="10,15 15,15 15,10" />
+            </svg>
+          </button>
           <button class={styles.jogBtn + ' ' + styles.zBtn} onClick={() => jog('z', -1)} disabled={!canJog()}>
             Z-
           </button>

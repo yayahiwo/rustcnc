@@ -28,3 +28,128 @@
 .coordToggle:hover {
   background: var(--bg-hover);
 }
+
+.zeroAll {
+  margin-top: 4px;
+  padding: 4px 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.zeroAll:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--accent-blue);
+}
+
+.zeroAll:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.savedPositions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--gap-sm) var(--gap-sm);
+}
+
+.savedRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+}
+
+.savedCoords {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.goBtn {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 2px 6px;
+  background: transparent;
+  color: var(--accent-green);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.goBtn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.goBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.deleteBtn {
+  font-size: var(--font-size-sm);
+  padding: 2px 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.deleteBtn:hover {
+  background: var(--bg-hover);
+  color: var(--accent-red);
+}
+
+.addBtn {
+  margin-top: 4px;
+  padding: 4px 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+
+.addBtn:hover {
+  background: var(--bg-hover);
+  color: var(--accent-blue);
+}
+
+.goToZeroBtn {
+  margin-top: 4px;
+  padding: 6px 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  background: var(--bg-surface);
+  color: var(--accent-green);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.goToZeroBtn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.goToZeroBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

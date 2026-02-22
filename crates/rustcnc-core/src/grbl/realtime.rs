@@ -22,25 +22,25 @@ pub const RT_TOGGLE_SINGLE_STEP: u8 = 0x89;
 
 // ── Feed overrides ────────────────────────────────────────────────
 
-pub const RT_FEED_OVR_RESET: u8 = 0x90;       // 100%
-pub const RT_FEED_OVR_COARSE_PLUS: u8 = 0x91;  // +10%
+pub const RT_FEED_OVR_RESET: u8 = 0x90; // 100%
+pub const RT_FEED_OVR_COARSE_PLUS: u8 = 0x91; // +10%
 pub const RT_FEED_OVR_COARSE_MINUS: u8 = 0x92; // -10%
-pub const RT_FEED_OVR_FINE_PLUS: u8 = 0x93;    // +1%
-pub const RT_FEED_OVR_FINE_MINUS: u8 = 0x94;   // -1%
+pub const RT_FEED_OVR_FINE_PLUS: u8 = 0x93; // +1%
+pub const RT_FEED_OVR_FINE_MINUS: u8 = 0x94; // -1%
 
 // ── Rapid overrides ──────────────────────────────────────────────
 
-pub const RT_RAPID_OVR_RESET: u8 = 0x95;  // 100%
+pub const RT_RAPID_OVR_RESET: u8 = 0x95; // 100%
 pub const RT_RAPID_OVR_MEDIUM: u8 = 0x96; // 50%
-pub const RT_RAPID_OVR_LOW: u8 = 0x97;    // 25%
+pub const RT_RAPID_OVR_LOW: u8 = 0x97; // 25%
 
 // ── Spindle overrides ────────────────────────────────────────────
 
-pub const RT_SPINDLE_OVR_RESET: u8 = 0x99;       // 100%
-pub const RT_SPINDLE_OVR_COARSE_PLUS: u8 = 0x9A;  // +10%
+pub const RT_SPINDLE_OVR_RESET: u8 = 0x99; // 100%
+pub const RT_SPINDLE_OVR_COARSE_PLUS: u8 = 0x9A; // +10%
 pub const RT_SPINDLE_OVR_COARSE_MINUS: u8 = 0x9B; // -10%
-pub const RT_SPINDLE_OVR_FINE_PLUS: u8 = 0x9C;    // +1%
-pub const RT_SPINDLE_OVR_FINE_MINUS: u8 = 0x9D;   // -1%
+pub const RT_SPINDLE_OVR_FINE_PLUS: u8 = 0x9C; // +1%
+pub const RT_SPINDLE_OVR_FINE_MINUS: u8 = 0x9D; // -1%
 pub const RT_SPINDLE_OVR_STOP: u8 = 0x9E;
 
 // ── Coolant overrides ────────────────────────────────────────────

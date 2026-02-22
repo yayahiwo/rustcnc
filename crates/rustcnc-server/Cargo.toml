@@ -11,7 +11,6 @@ path = "src/main.rs"
 rustcnc-core = { workspace = true }
 rustcnc-streamer = { workspace = true }
 rustcnc-planner = { workspace = true }
-rustcnc-simulator = { workspace = true }
 tokio = { workspace = true }
 axum = { workspace = true, features = ["multipart"] }
 serialport = { workspace = true }
@@ -21,6 +20,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
 clap = { workspace = true }
 toml = { workspace = true }
 rust-embed = { workspace = true }
@@ -32,3 +32,6 @@ futures-util = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 mime_guess = { workspace = true }
+libc = { workspace = true }
+sha2 = { workspace = true }
+base64 = { workspace = true }

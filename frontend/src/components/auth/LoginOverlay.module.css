@@ -1,0 +1,95 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.card {
+  width: min(420px, calc(100vw - 40px));
+  background: rgba(20, 22, 28, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  color: #fff;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.input {
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  padding: 0 12px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: rgba(99, 164, 255, 0.65);
+  box-shadow: 0 0 0 3px rgba(99, 164, 255, 0.18);
+}
+
+.error {
+  color: #ffb4b4;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.btn {
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.btnPrimary {
+  background: rgba(99, 164, 255, 0.9);
+  border-color: rgba(99, 164, 255, 0.9);
+  color: #0b1020;
+  font-weight: 700;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
