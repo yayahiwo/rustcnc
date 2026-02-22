@@ -2,6 +2,8 @@
 
 Rust-based CNC controller (GRBL/grblHAL) with a web UI. Designed to run on a Raspberry Pi 4 and stream G-code over USB serial.
 
+<img src="docs/assets/rustcnc_web_ui_screen.png" alt="RustCNC Web UI screenshot" width="900" />
+
 ## Repo layout
 
 - `crates/rustcnc-server`: Axum HTTP/WebSocket server + embedded UI
